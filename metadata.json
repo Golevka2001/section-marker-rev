@@ -1,0 +1,36 @@
+{
+  "name": "section-marker",
+  "kind": "extension",
+  "version": "1.1.3",
+  "authors": ["Aimarekin", "Golevka2001"],
+  "description": "See a song's highlighted sections straight from your playbar.",
+  "entries": {
+    "js": "index.js",
+    "css": "index.css"
+  },
+  "hasMixins": false,
+  "dependencies": {
+    "stdlib": "^1.10.4"
+  },
+  "stdlibBoundary": {
+    "exceptions": [
+      {
+        "file": "src/interface.ts",
+        "rules": ["client-dom"],
+        "reason": "Injects the marker containers into the client's playback progress bar via its x-progressBar-* classes; there is no classmap path for the playbar slider area."
+      },
+      {
+        "file": "src/analysis_loader.ts",
+        "rules": ["ambient-client"],
+        "reason": "Fetches analysis through Spicetify.getAudioData, the client's cached audio-analysis entry point; stdlib does not surface it."
+      },
+      {
+        "file": "src/app.ts",
+        "rules": ["ambient-client"],
+        "reason": "Peeks at the upcoming track through Spicetify.Queue to preload its analysis; stdlib does not surface the queue."
+      }
+    ]
+  },
+  "preview": "https://raw.githubusercontent.com/Aimarekin/Aimarekins-Spicetify-Extensions/main/section-marker/assets/samples_reduced.gif",
+  "license": "CC-BY-NC-4.0"
+}
