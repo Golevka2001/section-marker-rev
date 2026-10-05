@@ -39,7 +39,13 @@ let sectionCount: number | null = null
 
 let hasInjected = false
 export async function injectInterface() {
-    if (hasInjected) throw new Error("Interface already injected")
+    // The loader can evaluate this module more than once in a page, e.g. on
+    // every hot push of the dev loop. The interface is already in place then,
+    // so this is a no-op rather than a failure.
+    if (hasInjected) {
+        console.warn("SECTION-MARKER: Interface already injected, skipping")
+        return
+    }
     hasInjected = true
 
     // Initial setup
