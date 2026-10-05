@@ -27,7 +27,10 @@
 }
 
 .section-marker-playbar-below-marker-width {
-    .section-marker-markers {
+    // The class sits on the markers container itself, so it has to match the
+    // element carrying it as well as one carrying it further up.
+    .section-marker-markers,
+    &.section-marker-markers {
         display: none;
     }
 }

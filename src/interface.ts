@@ -251,7 +251,10 @@ function mountProgressBar(bar: HTMLElement, minimumMarkersWidth: number) {
     function setDimensions() {
         bar.style.setProperty("--section-marker-playbar-height", bar.clientHeight + "px")
 
-        bar.classList[bar.clientWidth < minimumMarkersWidth ? "add" : "remove"]("section-marker-playbar-below-marker-width")
+        // The gate goes on our own container, not on the bar: the client
+        // re-renders the bar and overwrites its class attribute, which would
+        // drop the gate and leave markers on a bar they are too cramped for.
+        markerContainer.classList.toggle("section-marker-playbar-below-marker-width", bar.clientWidth < minimumMarkersWidth)
     }
     setDimensions()
 
@@ -272,7 +275,8 @@ function unmountProgressBar(bar: Node) {
 
     mounts = mounts.filter((candidate) => candidate !== mount)
     mount.resizeObserver.disconnect()
-    mount.bar.classList.remove("section-marker-injected-playbar", "section-marker-playbar-below-marker-width")
+    mount.bar.classList.remove("section-marker-injected-playbar")
+    mount.markerContainer.classList.remove("section-marker-playbar-below-marker-width")
     mount.sectionContainer.remove()
     mount.markerContainer.remove()
 }
