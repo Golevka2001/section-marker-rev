@@ -4,16 +4,12 @@ declare global {
 			"menu_item": string;
 		};
 		"main": {
-			"global_navbar": {
-			};
 			"navbar": {
 				"link": {
 					"container": string;
 					"container__active": string;
 					"wrapper": string;
 				};
-			};
-			"panel": {
 			};
 			"playbar": {
 				"buttons": {
@@ -23,12 +19,6 @@ declare global {
 						"wrapper__indicator": string;
 					};
 				};
-				"controls": {
-				};
-				"widget": {
-				};
-			};
-			"sidebar": {
 			};
 			"topbar": {
 				"left": {
