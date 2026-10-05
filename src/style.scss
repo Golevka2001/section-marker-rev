@@ -104,6 +104,11 @@
     }
 
     &:nth-child(even) {
+        // The backdrop filter only lifts the part of the bar that has already
+        // been played, and only where the client composites it at all, which
+        // the mini player's own window may not. The wash underneath keeps the
+        // alternating sections readable either way.
         backdrop-filter: contrast(0.6) invert(0.1);
+        background-color: rgb(255 255 255 / 0.07);
     }
 }
