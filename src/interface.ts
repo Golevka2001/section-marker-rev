@@ -212,7 +212,9 @@ function copyStyles(doc: Document) {
     ;(doc.head ?? doc.documentElement).appendChild(style)
 }
 
-// The progress bar wraps a slider area the markers are layered on top of.
+// The slider area wraps the bar line the sections are laid over. It is only as
+// tall as the line and clips whatever overflows it, so it cannot host the
+// markers, which deliberately reach out above and below it.
 function getSliderArea(bar: HTMLElement) {
     return bar.querySelector<HTMLElement>(".x-progressBar-sliderArea")
         ?? bar.querySelector<HTMLElement>(".progress-bar")
@@ -234,8 +236,15 @@ function mountProgressBar(bar: HTMLElement, minimumMarkersWidth: number) {
     bar.classList.add("section-marker-injected-playbar")
 
     const sliderArea = getSliderArea(bar)
+
+    // The sections belong inside the slider area: they match the bar's height
+    // and their backdrop-filter has to sample the played fill behind them.
     sliderArea.appendChild(sectionContainer)
-    sliderArea.appendChild(markerContainer)
+
+    // The markers are taller than the bar line on purpose, so they go on the
+    // progress bar itself, which is positioned and does not clip. The two are
+    // the same width, so the percentage positions still line up.
+    bar.appendChild(markerContainer)
 
     // Set the size variables, scoped to this bar so that bars of differing
     // sizes (the playbar versus the mini player) do not overwrite each other
