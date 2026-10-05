@@ -1,3 +1,10 @@
+// Defaults, so the markers also render on progress bars that are not part
+// of the regular playbar, such as the mini player's.
+:root {
+    --section-marker-marker-color: rgb(255 255 255 / 0.8);
+    --section-marker-marker-size: 4px;
+}
+
 .playback-bar .progress-bar {
     --section-marker-marker-color: rgb(255 255 255 / 0.8);
     --section-marker-marker-size: 4px;

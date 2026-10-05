@@ -31,6 +31,11 @@ Yes, even sidebar controls:
 The markers will be automatically hidden
 if the playbar is too thin, which would make them look too cramped.
 
+They are shown in the playbar and in the mini player. The mini player is a
+separate picture-in-picture window, so the extension sets up its own copy of
+the markers in it. Because that window is only ever as wide as the window
+itself, it hides them at a lower width than the playbar does.
+
 **Notice**: Nord is not yet fully compatible and you may notice a small offset - a fix has been proposed to Nord's developers.
 
 Sections are not available on local files due to Spotify limitations. Podcasts do not have sections.
