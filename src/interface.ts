@@ -39,17 +39,14 @@ let sectionCount: number | null = null
 
 let hasInjected = false
 export async function injectInterface() {
-    // The loader can evaluate this module more than once in a page, e.g. on
-    // every hot push of the dev loop. The interface is already in place then,
-    // so this is a no-op rather than a failure.
-    if (hasInjected) {
-        console.warn("SECTION-MARKER: Interface already injected, skipping")
-        return
-    }
+    // The loader can evaluate this module's entry more than once per page. The
+    // interface is in place after the first call, so this is a no-op.
+    if (hasInjected) return
     hasInjected = true
 
     // Initial setup
     applyState(document.body)
+    pinStyles()
 
     // Append the containers to the regular playbar
     watchForElement(
@@ -164,16 +161,42 @@ function getOwnStyleRules() {
 
     // The v3 loader hands a module's CSS to the document as a constructed
     // stylesheet on adoptedStyleSheets, which document.styleSheets omits.
-    const rules = [
+    // The same rules turn up in both places once one is pinned below, hence
+    // the de-duplication.
+    const rules = Array.from(new Set([
         ...Array.from(document.adoptedStyleSheets).flatMap(collect),
         ...Array.from(document.styleSheets).flatMap(collect as (sheet: CSSStyleSheet) => string[]),
-    ]
+    ]))
 
     // An empty result means the stylesheet had not been adopted yet, so it must
     // not be cached, or every later copy would keep coming up empty.
     if (rules.length > 0) ownStyleRules = rules
 
     return rules
+}
+
+// The loader periodically detaches a module's stylesheet from
+// adoptedStyleSheets and puts it back a frame or two later. Everything this
+// extension draws loses its rules in that gap and falls back to unstyled
+// elements, which reads as the progress bar flickering. A plain <style> in the
+// head is not something the loader manages, so a pinned copy covers the gaps.
+const STYLE_PIN_ATTEMPTS = 20
+let stylePinAttempts = 0
+
+function pinStyles() {
+    if (document.querySelector("style[data-section-marker-pinned]")) return
+
+    const rules = getOwnStyleRules()
+    if (rules.length === 0) {
+        // The loader may not have adopted the stylesheet yet
+        if (stylePinAttempts++ < STYLE_PIN_ATTEMPTS) setTimeout(pinStyles, 250)
+        return
+    }
+
+    const style = document.createElement("style")
+    style.dataset.sectionMarkerPinned = ""
+    style.textContent = rules.join("\n")
+    document.head.appendChild(style)
 }
 
 function copyStyles(doc: Document) {
