@@ -76,35 +76,62 @@ function watchMiniPlayer() {
     const pip = (window as any).documentPictureInPicture
     if (!pip || typeof pip.addEventListener !== "function") return
 
-    const enter = (event: { window?: Window }) => watchDocument(event?.window ?? pip.window)
-    pip.addEventListener("enter", enter)
+    pip.addEventListener("enter", pollMiniPlayer)
 
     // The mini player may already be open
-    if (pip.window) watchDocument(pip.window)
+    if (pip.window) pollMiniPlayer()
 }
 
-function watchDocument(pipWindow: any) {
-    const doc: Document | undefined = pipWindow?.document
-    if (!doc || watchedDocuments.includes(doc)) return
+let miniPlayerPoll: ReturnType<typeof setInterval> | null = null
+
+// The document handed out by the enter event is not the one the mini player
+// ends up in: it gets replaced while the client renders into it, and it does so
+// in chunks rather than in one go. The live window is therefore re-resolved on
+// a timer, and the progress bars are looked up in it directly instead of
+// through an observer on a document that may already be discarded.
+function pollMiniPlayer() {
+    if (miniPlayerPoll) return
+
+    let watched: Document | null = null
+
+    miniPlayerPoll = setInterval(() => {
+        const doc: Document | undefined = (window as any).documentPictureInPicture?.window?.document
+
+        if (!doc) {
+            clearInterval(miniPlayerPoll!)
+            miniPlayerPoll = null
+            if (watched) forgetDocument(watched)
+            return
+        }
+
+        if (doc !== watched) {
+            watched = doc
+            watchDocument(doc)
+        }
+
+        for (const bar of Array.from(doc.querySelectorAll<HTMLElement>(".playback-progressbar"))) {
+            // The mini player also renders its volume slider with the progress
+            // bar classes, which must not be marked up
+            if (bar.closest(".volume-bar__slider-container")) continue
+
+            mountProgressBar(bar, MINIMUM_MINI_PLAYER_MARKERS_WIDTH)
+        }
+    }, 200)
+}
+
+function watchDocument(doc: Document) {
+    if (watchedDocuments.includes(doc)) return
     watchedDocuments.push(doc)
 
     if (doc.body) applyState(doc.body)
     copyStyles(doc)
 
-    const unwatch = watchForElement(
-        ".playback-progressbar",
-        doc,
-        (el) => { mountProgressBar(el as HTMLElement, MINIMUM_MINI_PLAYER_MARKERS_WIDTH) },
-        unmountProgressBar
-    )
+    doc.defaultView?.addEventListener("pagehide", () => forgetDocument(doc), { once: true })
+}
 
-    const discard = () => {
-        unwatch()
-        watchedDocuments = watchedDocuments.filter((watched) => watched !== doc)
-        unmountDocument(doc)
-    }
-
-    pipWindow.addEventListener?.("pagehide", discard, { once: true })
+function forgetDocument(doc: Document) {
+    watchedDocuments = watchedDocuments.filter((watched) => watched !== doc)
+    unmountDocument(doc)
 }
 
 function unmountDocument(doc: Document) {
@@ -120,21 +147,33 @@ let ownStyleRules: string[] | null = null
 function getOwnStyleRules() {
     if (ownStyleRules) return ownStyleRules
 
-    const rules: string[] = []
-    for (const sheet of Array.from(document.styleSheets)) {
+    const collect = (sheet: CSSStyleSheet) => {
+        const found: string[] = []
         let sheetRules: CSSRuleList
         try {
-            sheetRules = (sheet as CSSStyleSheet).cssRules
+            sheetRules = sheet.cssRules
         } catch {
-            continue // Cross origin sheet, not ours
+            return found // Cross origin sheet, not ours
         }
 
         for (const rule of Array.from(sheetRules)) {
-            if (rule.cssText.includes(STYLE_SIGNATURE)) rules.push(rule.cssText)
+            if (rule.cssText.includes(STYLE_SIGNATURE)) found.push(rule.cssText)
         }
+        return found
     }
 
-    return (ownStyleRules = rules)
+    // The v3 loader hands a module's CSS to the document as a constructed
+    // stylesheet on adoptedStyleSheets, which document.styleSheets omits.
+    const rules = [
+        ...Array.from(document.adoptedStyleSheets).flatMap(collect),
+        ...Array.from(document.styleSheets).flatMap(collect as (sheet: CSSStyleSheet) => string[]),
+    ]
+
+    // An empty result means the stylesheet had not been adopted yet, so it must
+    // not be cached, or every later copy would keep coming up empty.
+    if (rules.length > 0) ownStyleRules = rules
+
+    return rules
 }
 
 function copyStyles(doc: Document) {
