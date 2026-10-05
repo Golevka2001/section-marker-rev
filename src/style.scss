@@ -12,8 +12,7 @@
 
 .section-marker-no-data,
 .section-marker-loading-data.section-marker-had-no-data,
-.section-marker-less-than-two-sections,
-.section-marker-disabled
+.section-marker-less-than-two-sections
 {
     .section-marker-element {
         opacity: 0;
@@ -27,7 +26,6 @@
     }
 }
 
-.section-marker-no-markers,
 .section-marker-playbar-below-marker-width {
     .section-marker-markers {
         display: none;
@@ -103,8 +101,6 @@
     }
 
     &:nth-child(even) {
-        //backdrop-filter: contrast(250%) invert(50%);
         backdrop-filter: contrast(0.6) invert(0.1);
-        //background-color: rgb(120 120 120 / 0.4);
     }
 }

@@ -172,7 +172,6 @@ function mountProgressBar(bar: HTMLElement, minimumMarkersWidth: number) {
     // Set the size variables, scoped to this bar so that bars of differing
     // sizes (the playbar versus the mini player) do not overwrite each other
     function setDimensions() {
-        bar.style.setProperty("--section-marker-playbar-width", bar.clientWidth + "px")
         bar.style.setProperty("--section-marker-playbar-height", bar.clientHeight + "px")
 
         bar.classList[bar.clientWidth < minimumMarkersWidth ? "add" : "remove"]("section-marker-playbar-below-marker-width")

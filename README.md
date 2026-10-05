@@ -41,21 +41,35 @@ itself, it hides them at a lower width than the playbar does.
 Sections are not available on local files due to Spotify limitations. Podcasts do not have sections.
 
 ## Installation
-This is a Spicetify v3 module. Install it from the Spicetify Marketplace once published, or with a packed build attached to a release:
+This is a Spicetify v3 module. Install it from the Spicetify Marketplace once published, or from a packed build:
 
 ```bash
-spicetify pkg install section-marker <url-to-zip>
+spicetify-kit pack dist/section-marker@1.1.3     # zip the build, prints its sha256
+spicetify-kit install dist/section-marker@1.1.3  # sideload into a running client
 ```
+
+`spicetify-kit install` also accepts a `.zip`, so it can be pointed at a build attached to a release.
 
 ## Theming
 If you are a theme developer, or would like to modify the aspect of this extension, you can modify the CSS rules applied by this extension. Head to [src/style.scss](https://github.com/Aimarekin/Aimarekins-Spicetify-Extensions/blob/main/section-marker/src/style.scss) to see the applied SCSS.
 
 This file is not plain CSS - it is SCSS, an extension of CSS that allows for an expanded syntax. It is compiled to CSS when the extension is compiled. To see the plain CSS, you can compile the SCSS with an [online tool](https://www.sassmeister.com), or inspect it from within Spicetify. Run `spicetify enable-dev-tools` to open Spicetify with devtools enabled (`CTRL+SHIFT+I`).
 
-In order to fetch the progress bar's dimensions and radius, this extension uses the `--progress-bar-height` and `--progress-bar-radius` variables from the `.progress-bar` class. Please make sure your theme/snippet uses these variables adequately for this extension to be fully compatible.
+The marker's own appearance is driven by two custom properties, `--section-marker-marker-color` and `--section-marker-marker-size`. They default on `:root` and are re-declared on `.playback-bar .progress-bar`, so a theme can restyle the playbar without touching the mini player.
+
+Progress bar height is measured at runtime and published as `--section-marker-playbar-height` on each progress bar, so the markers match the bar whatever height the theme uses.
 
 ## Building
-This extension has been made with [Spicetify Creator](https://spicetify.app/docs/development/spicetify-creator/). Run `npm run build-local` to compile it into Javascript.
+This module is built with [spicetify-kit](https://spicetify.app/docs/development/).
+
+```bash
+bun install         # or npm install
+npm run check       # tsc + module standard audit
+npm run build       # bundle into dist/section-marker@<version>
+npm run dev         # watch, rebuild and hot-push into a running client
+```
+
+`npm run dev` needs the client reachable on the remote debugging port; add `--launch` and it starts Spotify for you.
 
 ---
 
