@@ -288,9 +288,7 @@ function applyAnalysis(mount: Mount, audioData: AudioAnalysis.Analysis) {
 
     const view = mount.doc.defaultView ?? window
 
-    // Let the new elements create so they are rendered,
-    // set properties afterwards for them to transition
-    view.requestAnimationFrame(() => {
+    const apply = () => {
         const trackDuration = audioData.track.duration.toString()
         const body = mount.doc.body
 
@@ -322,5 +320,12 @@ function applyAnalysis(mount: Mount, audioData: AudioAnalysis.Analysis) {
 
             [marker, section].forEach((elm) => elm.classList.add("section-marker-not-exists"))
         }
-    })
+    }
+
+    // Let the new elements create so they are rendered,
+    // set properties afterwards for them to transition.
+    // A client that is not on screen has its requestAnimationFrame throttled
+    // away, so there the values go in directly instead of never at all.
+    if (mount.doc.hidden) apply()
+    else view.requestAnimationFrame(apply)
 }

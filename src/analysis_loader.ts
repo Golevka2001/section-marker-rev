@@ -5,6 +5,8 @@ import { hydrateLoading, hydrateEmpty, hydrateAnalysis } from "./interface"
 const PRELOAD_DEBOUNCE = 15000 // ms
 
 export function canThisBeAnalyzed(uriRAW: any) {
+    if (!uriRAW) return false
+
     const uri = client.uri.from(uriRAW)
     return uri && uri.type === client.uri.Type.TRACK
 }
@@ -30,6 +32,11 @@ export function showAnalysisForUri(uriRAW: any) {
     }).catch((err) => {
         console.warn("SECTION-MARKER: Failed to get audio data for", uriRAW, err)
         if (thisAnalysisIndex !== analysisIndex) return
+
+        // Forget the URI so a later tick can try again. A failed request is
+        // usually transient, and keeping the URI would leave this track blank
+        // until another one was played.
+        if (shownURI === uriRAW) shownURI = null
 
         hydrateEmpty()
     })
