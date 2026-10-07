@@ -12,13 +12,9 @@ import {
     type MarkerState,
 } from "./logic"
 
-// Marks the stylesheet Spicetify loaded for this extension, so it can be
-// recognised again when it has to be copied into a foreign document.
+// Identifies this extension's own rules among every sheet on the page.
 const STYLE_SIGNATURE = "section-marker"
 
-// One progress bar the markers are rendered onto, together with the document
-// it lives in. The playbar, the mini player and any future surface all get
-// their own containers, as a single pair of elements can only sit in one place.
 type Mount = {
     bar: HTMLElement
     doc: Document
@@ -28,31 +24,24 @@ type Mount = {
 }
 
 let mounts: Mount[] = []
-// Documents that hold a mountable progress bar, including ones that do not
-// have a bar mounted yet. Global state classes have to reach all of them.
 let watchedDocuments: Document[] = []
 let lastAnalysis: AudioAnalysis.Analysis | null = null
 
-// What the markers are currently displaying, mirrored onto every body as
-// class names. A document that joins later gets the state applied to it.
+// State lives here rather than per document, so a document that joins late
+// still gets it applied.
 let state: MarkerState = "no-data"
-// Whether the current run started out blank, which suppresses the transition
-// in, so the first markers after a load appear where they belong
 let hadNoData = false
 let sectionCount: number | null = null
 
 let hasInjected = false
 export async function injectInterface() {
-    // The loader can evaluate this module's entry more than once per page. The
-    // interface is in place after the first call, so this is a no-op.
+    // The loader can evaluate this entry more than once per page.
     if (hasInjected) return
     hasInjected = true
 
-    // Initial setup
     applyState(document.body)
     pinStyles()
 
-    // Append the containers to the regular playbar
     watchForElement(
         ".playback-bar .playback-progressbar",
         await waitForElm("#main > .Root"),
@@ -60,9 +49,8 @@ export async function injectInterface() {
         unmountProgressBar
     )
 
-    // The mini player renders into a Document Picture-in-Picture window,
-    // which is a document of its own. It gets neither Spicetify's stylesheet
-    // nor this module's DOM, so it has to be set up separately.
+    // The mini player is a document of its own, with neither our stylesheet
+    // nor our DOM in it, so it needs setting up separately.
     watchMiniPlayer()
 }
 
@@ -80,17 +68,14 @@ function watchMiniPlayer() {
 
     pip.addEventListener("enter", pollMiniPlayer)
 
-    // The mini player may already be open
-    if (pip.window) pollMiniPlayer()
+    if (pip.window) pollMiniPlayer() // may already be open
 }
 
 let miniPlayerPoll: ReturnType<typeof setInterval> | null = null
 
-// The document handed out by the enter event is not the one the mini player
-// ends up in: it gets replaced while the client renders into it, and it does so
-// in chunks rather than in one go. The live window is therefore re-resolved on
-// a timer, and the progress bars are looked up in it directly instead of
-// through an observer on a document that may already be discarded.
+// The document from the enter event is not the one the mini player ends up
+// in: the client replaces it in chunks while rendering. So the live window is
+// re-resolved on a timer instead of being observed.
 function pollMiniPlayer() {
     if (miniPlayerPoll) return
 
@@ -112,8 +97,7 @@ function pollMiniPlayer() {
         }
 
         for (const bar of Array.from(doc.querySelectorAll<HTMLElement>(".playback-progressbar"))) {
-            // The mini player also renders its volume slider with the progress
-            // bar classes, which must not be marked up
+            // The volume slider wears the same classes and must not be marked up
             if (bar.closest(".volume-bar__slider-container")) continue
 
             mountProgressBar(bar, MINIMUM_MINI_PLAYER_MARKERS_WIDTH)
@@ -142,8 +126,6 @@ function unmountDocument(doc: Document) {
     }
 }
 
-// The mini player's document starts out without any of this extension's CSS.
-// Clone the rules Spicetify injected into the main document into it.
 let ownStyleRules: string[] | null = null
 
 function getOwnStyleRules() {
@@ -164,27 +146,23 @@ function getOwnStyleRules() {
         return found
     }
 
-    // The v3 loader hands a module's CSS to the document as a constructed
-    // stylesheet on adoptedStyleSheets, which document.styleSheets omits.
-    // The same rules turn up in both places once one is pinned below, hence
-    // the de-duplication.
+    // The v3 loader hands a module's CSS over on adoptedStyleSheets, which
+    // document.styleSheets omits. Once a copy is pinned the rules turn up in
+    // both places, hence the de-duplication.
     const rules = Array.from(new Set([
         ...Array.from(document.adoptedStyleSheets).flatMap(collect),
         ...Array.from(document.styleSheets).flatMap(collect as (sheet: CSSStyleSheet) => string[]),
     ]))
 
-    // An empty result means the stylesheet had not been adopted yet, so it must
-    // not be cached, or every later copy would keep coming up empty.
+    // Caching an empty result would leave every later copy empty too.
     if (rules.length > 0) ownStyleRules = rules
 
     return rules
 }
 
-// The loader periodically detaches a module's stylesheet from
-// adoptedStyleSheets and puts it back a frame or two later. Everything this
-// extension draws loses its rules in that gap and falls back to unstyled
-// elements, which reads as the progress bar flickering. A plain <style> in the
-// head is not something the loader manages, so a pinned copy covers the gaps.
+// The loader periodically detaches the stylesheet and puts it back a frame or
+// two later, which reads as the progress bar flickering. A plain <style> in the
+// head is not something it manages, so a pinned copy covers those gaps.
 const STYLE_PIN_ATTEMPTS = 20
 let stylePinAttempts = 0
 
@@ -193,7 +171,7 @@ function pinStyles() {
 
     const rules = getOwnStyleRules()
     if (rules.length === 0) {
-        // The loader may not have adopted the stylesheet yet
+        // The stylesheet may not have been adopted yet
         if (stylePinAttempts++ < STYLE_PIN_ATTEMPTS) setTimeout(pinStyles, 250)
         return
     }
@@ -217,9 +195,8 @@ function copyStyles(doc: Document) {
     ;(doc.head ?? doc.documentElement).appendChild(style)
 }
 
-// The slider area wraps the bar line the sections are laid over. It is only as
-// tall as the line and clips whatever overflows it, so it cannot host the
-// markers, which deliberately reach out above and below it.
+// The slider area is only as tall as the bar line and clips what overflows it,
+// so the markers, which reach out above and below, cannot live inside it.
 function getSliderArea(bar: HTMLElement) {
     return bar.querySelector<HTMLElement>(".x-progressBar-sliderArea")
         ?? bar.querySelector<HTMLElement>(".progress-bar")
@@ -242,23 +219,19 @@ function mountProgressBar(bar: HTMLElement, minimumMarkersWidth: number) {
 
     const sliderArea = getSliderArea(bar)
 
-    // The sections belong inside the slider area: they match the bar's height
-    // and their backdrop-filter has to sample the played fill behind them.
+    // Inside the slider area, so they match the bar's height and the
+    // backdrop-filter samples the played fill behind them.
     sliderArea.appendChild(sectionContainer)
 
-    // The markers are taller than the bar line on purpose, so they go on the
-    // progress bar itself, which is positioned and does not clip. The two are
-    // the same width, so the percentage positions still line up.
+    // On the bar itself, which is positioned and does not clip. Same width as
+    // the sections, so the percentages still line up.
     bar.appendChild(markerContainer)
 
-    // Set the size variables, scoped to this bar so that bars of differing
-    // sizes (the playbar versus the mini player) do not overwrite each other
     function setDimensions() {
         bar.style.setProperty("--section-marker-playbar-height", bar.clientHeight + "px")
 
-        // The gate goes on our own container, not on the bar: the client
-        // re-renders the bar and overwrites its class attribute, which would
-        // drop the gate and leave markers on a bar they are too cramped for.
+        // Scoped to our container rather than the bar: the client re-renders
+        // the bar and overwrites its class attribute, which would drop the gate.
         markerContainer.classList.toggle("section-marker-playbar-below-marker-width", isTooNarrowForMarkers(bar.clientWidth, minimumMarkersWidth))
     }
     setDimensions()
@@ -269,8 +242,7 @@ function mountProgressBar(bar: HTMLElement, minimumMarkersWidth: number) {
     const mount: Mount = { bar, doc, sectionContainer, markerContainer, resizeObserver }
     mounts.push(mount)
 
-    // A track may already be loaded when this bar shows up, e.g. when the
-    // mini player is opened halfway through a song
+    // A track may already be loaded, e.g. when the mini player opens midway
     if (lastAnalysis) applyAnalysis(mount, lastAnalysis)
 }
 
@@ -286,7 +258,6 @@ function unmountProgressBar(bar: Node) {
     mount.markerContainer.remove()
 }
 
-// Every body holding a mountable progress bar, the main one included
 function bodies() {
     const seen = new Set<Document>()
     const result: HTMLElement[] = []
@@ -316,8 +287,8 @@ export function hydrateEmpty() {
 }
 
 export function hydrateLoading() {
-    // Remember whether this load starts out blank, so that the markers
-    // appearing afterwards do not slide in from their previous positions
+    // Remember whether this load starts blank, so the markers do not slide in
+    // from their previous positions afterwards.
     hadNoData = state === "no-data"
     state = "loading"
 
@@ -341,7 +312,6 @@ function applyAnalysis(mount: Mount, audioData: AudioAnalysis.Analysis) {
     const sectionElms = Array.from(mount.sectionContainer.querySelectorAll<HTMLDivElement>(".section-marker-section"))
 
     for (let i = markerElms.length; i < audioData.sections.length; i++) {
-        // Create not yet existing elements
         const marker = mount.doc.createElement("div")
         marker.classList.add("section-marker-marker")
 
@@ -386,7 +356,6 @@ function applyAnalysis(mount: Mount, audioData: AudioAnalysis.Analysis) {
             })
         }
 
-        // "Remove" no longer necessary elements
         for (let i = audioData.sections.length; i < markerElms.length; i++) {
             const marker = markerElms[i] as HTMLDivElement
             const section = sectionElms[i] as HTMLDivElement
@@ -395,10 +364,8 @@ function applyAnalysis(mount: Mount, audioData: AudioAnalysis.Analysis) {
         }
     }
 
-    // Let the new elements create so they are rendered,
-    // set properties afterwards for them to transition.
-    // A client that is not on screen has its requestAnimationFrame throttled
-    // away, so there the values go in directly instead of never at all.
+    // Values go in a frame later so the new elements can transition in. An
+    // offscreen document has its rAF throttled away, so there they go direct.
     if (mount.doc.hidden) apply()
     else view.requestAnimationFrame(apply)
 }
