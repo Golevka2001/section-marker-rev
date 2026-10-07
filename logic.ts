@@ -87,6 +87,21 @@ export function isTooNarrowForMarkers(barWidth: number, minimumWidth: number): b
     return barWidth < minimumWidth;
 }
 
+// How far a marker reaches past the bar line, per side.
+export const MARKER_REACH = 2; // px
+
+// A marker stands proud of the line by a fixed reach, so a theme that makes
+// the playbar taller does not swallow it. Falls back through the coarser
+// measurements when the line element is not there.
+export function markerHeight(
+    measurements: { line?: number; slider?: number; bar?: number },
+    reach: number = MARKER_REACH,
+): number {
+    const { line, slider, bar } = measurements;
+
+    return (line || slider || bar || 0) + reach;
+}
+
 export function nextTrackUri(queue: {
     nextTracks?: readonly { contextTrack?: { uri?: string } }[] | undefined
 } | undefined | null): string | undefined {

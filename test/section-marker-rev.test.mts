@@ -7,6 +7,8 @@ import { test } from "node:test";
 
 import {
     isTooNarrowForMarkers,
+    markerHeight,
+    MARKER_REACH,
     MINIMUM_MARKERS_WIDTH,
     MINIMUM_MINI_PLAYER_MARKERS_WIDTH,
     nextTrackUri,
@@ -82,6 +84,27 @@ test("the width gate hides markers strictly below its minimum", () => {
     assert.equal(isTooNarrowForMarkers(MINIMUM_MARKERS_WIDTH - 1, MINIMUM_MARKERS_WIDTH), true);
     assert.equal(isTooNarrowForMarkers(MINIMUM_MARKERS_WIDTH, MINIMUM_MARKERS_WIDTH), false);
     assert.equal(isTooNarrowForMarkers(MINIMUM_MARKERS_WIDTH + 1, MINIMUM_MARKERS_WIDTH), false);
+});
+
+test("a marker reaches past the line on both sides", () => {
+    assert.equal(MARKER_REACH, 2);
+    assert.equal(markerHeight({ line: 4, slider: 12, bar: 24 }), 6);
+});
+
+test("a taller playbar does not change the marker", () => {
+    // The line is what the marker is measured against; the playbar growing
+    // around it must not swallow the marker.
+    assert.equal(markerHeight({ line: 4, slider: 12, bar: 60 }), markerHeight({ line: 4, slider: 12, bar: 12 }));
+});
+
+test("marker height falls back when the line element is missing", () => {
+    assert.equal(markerHeight({ slider: 12, bar: 60 }), 14);
+    assert.equal(markerHeight({ bar: 60 }), 62);
+    assert.equal(markerHeight({ line: 0, slider: 0, bar: 0 }), 2);
+});
+
+test("the marker reach is overridable", () => {
+    assert.equal(markerHeight({ line: 4 }, 6), 10);
 });
 
 test("the mini player is held to its own, lower minimum", () => {

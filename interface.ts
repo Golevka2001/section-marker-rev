@@ -3,6 +3,7 @@ import {
     MINIMUM_MARKERS_WIDTH,
     MINIMUM_MINI_PLAYER_MARKERS_WIDTH,
     isTooNarrowForMarkers,
+    markerHeight,
     sectionDatasetKey,
     sectionVariableName,
     sectionVariableValues,
@@ -203,6 +204,16 @@ function getSliderArea(bar: HTMLElement) {
         ?? bar
 }
 
+// The element that actually paints the line, as opposed to the progress bar
+// component around it: a theme that gives the playbar more height also gives
+// the component more height, but the line stays as thick as it was. Measuring
+// against the component is what leaves a marker sitting inside a tall bar.
+function getBarLine(sliderArea: HTMLElement) {
+    return sliderArea.querySelector<HTMLElement>(".x-progressBar-foreground")
+        ?? sliderArea.querySelector<HTMLElement>(".x-progressBar-middleground")
+        ?? sliderArea.querySelector<HTMLElement>(".x-progressBar-background")
+}
+
 function mountProgressBar(bar: HTMLElement, minimumMarkersWidth: number) {
     if (mounts.some((mount) => mount.bar === bar)) return
 
@@ -228,7 +239,14 @@ function mountProgressBar(bar: HTMLElement, minimumMarkersWidth: number) {
     bar.appendChild(markerContainer)
 
     function setDimensions() {
-        bar.style.setProperty("--section-marker-playbar-height", bar.clientHeight + "px")
+        // The marker is sized off the line plus a fixed reach, so it keeps
+        // standing proud of the line on a theme that makes the playbar taller.
+        const height = markerHeight({
+            line: getBarLine(sliderArea)?.clientHeight,
+            slider: sliderArea.clientHeight,
+            bar: bar.clientHeight,
+        })
+        bar.style.setProperty("--section-marker-playbar-height", height + "px")
 
         // Scoped to our container rather than the bar: the client re-renders
         // the bar and overwrites its class attribute, which would drop the gate.
