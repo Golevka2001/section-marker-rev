@@ -1,4 +1,4 @@
-import { waitForElm, watchForElement } from "./DOM_watcher"
+import { waitForElm, watchForElement } from "./dom-watcher"
 import {
     MINIMUM_MARKERS_WIDTH,
     MINIMUM_MINI_PLAYER_MARKERS_WIDTH,

@@ -1,7 +1,7 @@
 import { client } from "/modules/stdlib/mod.ts"
 
 import { injectInterface } from "./interface"
-import { showAnalysisForUri, preloadAnalysis } from "./analysis_loader"
+import { showAnalysisForUri, preloadAnalysis } from "./analysis-loader"
 import { nextTrackUri, shouldPreloadNextTrack } from "./logic"
 
 

@@ -20,7 +20,7 @@
         "reason": "Injects the marker containers into the client's playback progress bar via its x-progressBar-* classes; there is no classmap path for the playbar slider area."
       },
       {
-        "file": "analysis_loader.ts",
+        "file": "analysis-loader.ts",
         "rules": ["ambient-client"],
         "reason": "Fetches analysis through Spicetify.getAudioData, the client's cached audio-analysis entry point; stdlib does not surface it."
       },
