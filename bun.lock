@@ -5,7 +5,7 @@
     "": {
       "name": "section-marker-rev",
       "devDependencies": {
-        "@spicetify/kit": "^0.3.1",
+        "@spicetify/kit": "^0.4.4",
         "@types/node": "^24",
         "@types/react": "^18",
         "@types/react-dom": "^18",
@@ -76,7 +76,9 @@
 
     "@rolldown/pluginutils": ["@rolldown/pluginutils@1.0.1", "", {}, "sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw=="],
 
-    "@spicetify/kit": ["@spicetify/kit@0.3.1", "", { "dependencies": { "rolldown": "^1.2.0", "sass-embedded": "^1.80.0" }, "bin": { "spicetify-kit": "bin/spicetify-kit.js" } }, "sha512-D7yzFytI7L44zmvMPUAVampuTWL+YZYTFlilfh8gDpFZfjsfKUM6/KrHiqnTcr6RIz3SBx40qDp7ViT9vgZpKg=="],
+    "@spicetify/kit": ["@spicetify/kit@0.4.4", "", { "dependencies": { "@tanstack/query-core": "5.103.0", "rolldown": "^1.2.0", "sass-embedded": "^1.80.0" }, "bin": { "spicetify-kit": "bin/spicetify-kit.js" } }, "sha512-H1Ltxbzd7ISZIs9M+UmBGJzT7U/2aYEygeb+pXNucYoiT0M0NjcZLNOYc+rfuQWrp33/KUsAWXFJK07NvxzXtg=="],
+
+    "@tanstack/query-core": ["@tanstack/query-core@5.103.0", "", {}, "sha512-PfafnHQHEu7mZDsSalxSW/EBxPgF77k3atIJeQbqbb1Z7DmK2mH6YLJyqrvbbDk5M6Ua/egs7LLEs04a8robxA=="],
 
     "@types/node": ["@types/node@24.19.1", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-aS3/DG0oM05K0RIXXP+hKjinGG5IgSSVGzswZxW3O0sS3pH4/fycXundUC9XsszgKCk4gHXylTEK6hyFxVxnoQ=="],
 

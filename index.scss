@@ -10,13 +10,19 @@
 
 // Defaults, so the markers also render on progress bars that are not part
 // of the regular playbar, such as the mini player's.
+//
+// The colour follows the theme's own text colour rather than a literal white:
+// the markers sit on the progress bar, so on a light theme a fixed white
+// vanishes into the bar. --spice-text is declared by 11 of the 14 bundled
+// themes, and falls back to the client's Encore token, then to the literal
+// for a client with neither.
 :root {
-    --section-marker-marker-color: rgb(255 255 255 / 0.8);
+    --section-marker-marker-color: var(--spice-text, var(--text-base, rgb(255 255 255 / 0.8)));
     --section-marker-marker-size: 2.4px;
 }
 
 .playback-bar .progress-bar {
-    --section-marker-marker-color: rgb(255 255 255 / 0.8);
+    --section-marker-marker-color: var(--spice-text, var(--text-base, rgb(255 255 255 / 0.8)));
     --section-marker-marker-size: 2.4px;
 }
 
@@ -117,8 +123,10 @@
         // The backdrop filter only lifts the part of the bar that has already
         // been played, and only where the client composites it at all, which
         // the mini player's own window may not. The wash underneath keeps the
-        // alternating sections readable either way.
+        // alternating sections readable either way, and takes its tint from the
+        // marker colour so it darkens a light theme's bar instead of washing
+        // white over it.
         backdrop-filter: contrast(0.6) invert(0.1);
-        background-color: rgb(255 255 255 / 0.07);
+        background-color: color-mix(in srgb, var(--section-marker-marker-color) 9%, transparent);
     }
 }

@@ -57,6 +57,8 @@ This file is not plain CSS - it is SCSS, an extension of CSS that allows for an 
 
 The marker's own appearance is driven by two custom properties, `--section-marker-marker-color` and `--section-marker-marker-size`. They default on `:root` and are re-declared on `.playback-bar .progress-bar`, so a theme can restyle the playbar without touching the mini player.
 
+The colour follows the theme rather than being a fixed white, so the markers stay visible on a light theme's progress bar. It resolves through `--spice-text`, then the client's own `--text-base`, then a literal white for a client that declares neither — the same fallback chain the rest of the client uses. The wash behind the alternating sections takes its tint from that colour, so it darkens a light bar rather than washing white over it.
+
 Progress bar height is measured at runtime and published as `--section-marker-playbar-height` on each progress bar, so the markers match the bar whatever height the theme uses.
 
 ## Building
