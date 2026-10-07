@@ -34,16 +34,15 @@ Sections are not available on local files due to Spotify limitations. Podcasts d
 This is a Spicetify v3 module. Install it from the Spicetify Marketplace once published, or from a packed build:
 
 ```bash
-bunx @spicetify/kit pack dist/section-marker-rev@2.0.0      # zip the build, prints its sha256
-bunx @spicetify/kit install dist/section-marker-rev@2.0.0   # sideload into a running client
+bunx spicetify-kit pack dist/section-marker-rev@2.0.0      # zip the build, prints its sha256
+bunx spicetify-kit install dist/section-marker-rev@2.0.0   # sideload into a running client
 ```
 
-The kit is published as `@spicetify/kit`; `spicetify-kit` is the command it
-installs. Inside this project the plain `bunx spicetify-kit` also works,
-because the local `node_modules/.bin` is on the path first.
-
+<<<<<<< HEAD
+=======
 `spicetify-kit install` also accepts a `.zip`, so it can be pointed at a build attached to a release.
 
+>>>>>>> parent of 70ecd59 (docs: use the scoped package name for bunx)
 ## Theming
 
 If you are a theme developer, or would like to modify the aspect of this extension, you can modify the CSS rules applied by this extension. Head to [index.scss](https://github.com/Golevka2001/section-marker-rev/blob/main/index.scss) to see the applied SCSS.
