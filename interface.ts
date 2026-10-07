@@ -16,7 +16,6 @@ import {
 // recognised again when it has to be copied into a foreign document.
 const STYLE_SIGNATURE = "section-marker"
 
-
 // One progress bar the markers are rendered onto, together with the document
 // it lives in. The playbar, the mini player and any future surface all get
 // their own containers, as a single pair of elements can only sit in one place.
@@ -68,8 +67,7 @@ export async function injectInterface() {
 }
 
 function applyState(body: HTMLElement) {
-    // ClassList.toggle only adds or removes, so the classes that no longer
-    // apply have to be named explicitly rather than read off the list.
+    // Toggle every known name, since classList.toggle only adds or removes.
     const classes = stateClassNames({ state, hadNoData, sectionCount })
     for (const className of STATE_CLASS_NAMES) {
         body.classList.toggle(className, classes.includes(className))
