@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "section-marker",
+      "name": "section-marker-rev",
       "devDependencies": {
         "@spicetify/kit": "^0.3.1",
         "@types/react": "^18",
