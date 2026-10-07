@@ -1,8 +1,7 @@
 import { client } from "/modules/stdlib/mod.ts"
 
 import { hydrateLoading, hydrateEmpty, hydrateAnalysis } from "./interface"
-
-const PRELOAD_DEBOUNCE = 15000 // ms
+import { shouldPreload } from "./logic"
 
 export function canThisBeAnalyzed(uriRAW: any) {
     if (!uriRAW) return false
@@ -45,7 +44,7 @@ export function showAnalysisForUri(uriRAW: any) {
 let lastPreloadURI: string | null = null
 let lastPreloadTime = 0
 export function preloadAnalysis(uriRAW: any) {
-    if (lastPreloadURI == uriRAW || Date.now() - lastPreloadTime < PRELOAD_DEBOUNCE || !canThisBeAnalyzed(uriRAW)) return
+    if (!shouldPreload(uriRAW, lastPreloadURI, lastPreloadTime, Date.now()) || !canThisBeAnalyzed(uriRAW)) return
 
     lastPreloadURI = uriRAW
     lastPreloadTime = Date.now()

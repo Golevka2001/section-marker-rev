@@ -1,16 +1,21 @@
 import { waitForElm, watchForElement } from "./DOM_watcher"
-
-// Under this playbar width, the markers will not be shown
-const MINIMUM_MARKERS_WIDTH = 300 // px
-// The mini player lives in a tiny floating window, so it stays readable
-// with fewer pixels than the full width playbar does.
-const MINIMUM_MINI_PLAYER_MARKERS_WIDTH = 200 // px
+import {
+    MINIMUM_MARKERS_WIDTH,
+    MINIMUM_MINI_PLAYER_MARKERS_WIDTH,
+    isTooNarrowForMarkers,
+    sectionDatasetKey,
+    sectionVariableName,
+    sectionVariableValues,
+    stateClassNames,
+    STATE_CLASS_NAMES,
+    SECTION_VARIABLES,
+    type MarkerState,
+} from "./logic"
 
 // Marks the stylesheet Spicetify loaded for this extension, so it can be
 // recognised again when it has to be copied into a foreign document.
 const STYLE_SIGNATURE = "section-marker"
 
-const capitalize = (str: string) => str[0].toUpperCase() + str.slice(1)
 
 // One progress bar the markers are rendered onto, together with the document
 // it lives in. The playbar, the mini player and any future surface all get
@@ -31,7 +36,7 @@ let lastAnalysis: AudioAnalysis.Analysis | null = null
 
 // What the markers are currently displaying, mirrored onto every body as
 // class names. A document that joins later gets the state applied to it.
-let state: "no-data" | "loading" | "data" = "no-data"
+let state: MarkerState = "no-data"
 // Whether the current run started out blank, which suppresses the transition
 // in, so the first markers after a load appear where they belong
 let hadNoData = false
@@ -63,10 +68,12 @@ export async function injectInterface() {
 }
 
 function applyState(body: HTMLElement) {
-    body.classList.toggle("section-marker-no-data", state === "no-data")
-    body.classList.toggle("section-marker-loading-data", state === "loading")
-    body.classList.toggle("section-marker-had-no-data", hadNoData)
-    body.classList.toggle("section-marker-less-than-two-sections", sectionCount !== null && sectionCount < 2)
+    // ClassList.toggle only adds or removes, so the classes that no longer
+    // apply have to be named explicitly rather than read off the list.
+    const classes = stateClassNames({ state, hadNoData, sectionCount })
+    for (const className of STATE_CLASS_NAMES) {
+        body.classList.toggle(className, classes.includes(className))
+    }
 }
 
 function watchMiniPlayer() {
@@ -254,7 +261,7 @@ function mountProgressBar(bar: HTMLElement, minimumMarkersWidth: number) {
         // The gate goes on our own container, not on the bar: the client
         // re-renders the bar and overwrites its class attribute, which would
         // drop the gate and leave markers on a bar they are too cramped for.
-        markerContainer.classList.toggle("section-marker-playbar-below-marker-width", bar.clientWidth < minimumMarkersWidth)
+        markerContainer.classList.toggle("section-marker-playbar-below-marker-width", isTooNarrowForMarkers(bar.clientWidth, minimumMarkersWidth))
     }
     setDimensions()
 
@@ -319,15 +326,6 @@ export function hydrateLoading() {
     applyStateToAllBodies()
 }
 
-const sectionValues = {
-    start: (analysis: AudioAnalysis.Analysis, i: number) =>
-        analysis.sections[i].start,
-    duration: (analysis: AudioAnalysis.Analysis, i: number) =>
-        analysis.sections[i].duration,
-    index:
-        (_: AudioAnalysis.Analysis, i: number) => i,
-}
-
 export function hydrateAnalysis(audioData: AudioAnalysis.Analysis) {
     state = "data"
     sectionCount = audioData.sections.length
@@ -379,11 +377,13 @@ function applyAnalysis(mount: Mount, audioData: AudioAnalysis.Analysis) {
             [marker, section].forEach((elm) => {
                 elm.classList.remove(`section-marker-not-exists`)
 
-                for (const [key, value] of Object.entries(sectionValues)) {
-                    const val = value(audioData, i).toString()
+                const values = sectionVariableValues(audioData.sections, i)
 
-                    elm.dataset["sectionMarkerData" + capitalize(key)] = val
-                    elm.style.setProperty("--section-marker-data-" + key, val)
+                for (const variable of SECTION_VARIABLES) {
+                    const value = values[variable]
+
+                    elm.dataset[sectionDatasetKey(variable)] = value
+                    elm.style.setProperty(sectionVariableName(variable), value)
                 }
             })
         }

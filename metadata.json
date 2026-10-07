@@ -15,17 +15,17 @@
   "stdlibBoundary": {
     "exceptions": [
       {
-        "file": "src/interface.ts",
+        "file": "interface.ts",
         "rules": ["client-dom"],
         "reason": "Injects the marker containers into the client's playback progress bar via its x-progressBar-* classes; there is no classmap path for the playbar slider area."
       },
       {
-        "file": "src/analysis_loader.ts",
+        "file": "analysis_loader.ts",
         "rules": ["ambient-client"],
         "reason": "Fetches analysis through Spicetify.getAudioData, the client's cached audio-analysis entry point; stdlib does not surface it."
       },
       {
-        "file": "src/app.ts",
+        "file": "app.ts",
         "rules": ["ambient-client"],
         "reason": "Peeks at the upcoming track through Spicetify.Queue to preload its analysis; stdlib does not surface the queue."
       }

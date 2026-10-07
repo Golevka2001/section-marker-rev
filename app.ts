@@ -2,6 +2,7 @@ import { client } from "/modules/stdlib/mod.ts"
 
 import { injectInterface } from "./interface"
 import { showAnalysisForUri, preloadAnalysis } from "./analysis_loader"
+import { nextTrackUri, shouldPreloadNextTrack } from "./logic"
 
 
 // The loader can call the entry more than once per page, so the listeners are
@@ -12,8 +13,6 @@ async function main() {
 	while (!client.player.data || !client.uri || !client.locale || !client.cosmos || !client.react) {
 		await new Promise(resolve => setTimeout(resolve, 100))
 	}
-
-	const PRELOAD_TIME = 10000 // ms
 
 	// Inject the playbar interface
 	await injectInterface()
@@ -30,8 +29,8 @@ async function main() {
 		showAnalysisForUri(getCurrentURI())
 
 		// Preload the next song's data
-		if (client.player.getDuration() - client.player.getProgress() < PRELOAD_TIME) {
-			preloadAnalysis(Spicetify.Queue.nextTracks[0]?.contextTrack?.uri)
+		if (shouldPreloadNextTrack(client.player.getDuration(), client.player.getProgress())) {
+			preloadAnalysis(nextTrackUri(Spicetify.Queue))
 		}
 	}
 

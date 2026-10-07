@@ -51,7 +51,7 @@ bunx spicetify-kit install dist/section-marker-rev@2.0.0   # sideload into a run
 `spicetify-kit install` also accepts a `.zip`, so it can be pointed at a build attached to a release.
 
 ## Theming
-If you are a theme developer, or would like to modify the aspect of this extension, you can modify the CSS rules applied by this extension. Head to [src/style.scss](https://github.com/Golevka2001/section-marker-rev/blob/main/src/style.scss) to see the applied SCSS.
+If you are a theme developer, or would like to modify the aspect of this extension, you can modify the CSS rules applied by this extension. Head to [index.scss](https://github.com/Golevka2001/section-marker-rev/blob/main/index.scss) to see the applied SCSS.
 
 This file is not plain CSS - it is SCSS, an extension of CSS that allows for an expanded syntax. It is compiled to CSS when the extension is compiled. To see the plain CSS, you can compile the SCSS with an [online tool](https://www.sassmeister.com), or inspect it from within Spicetify. Run `spicetify enable-dev-tools` to open Spicetify with devtools enabled (`CTRL+SHIFT+I`).
 
@@ -65,11 +65,14 @@ This module is built with [spicetify-kit](https://spicetify.app/docs/development
 ```bash
 bun install       # install dependencies
 bun run check     # tsc + module standard audit
+bun run test      # unit tests for the pure logic in logic.ts
 bun run build     # bundle into dist/section-marker-rev@<version>
 bun run dev       # watch, rebuild and hot-push into a running client
 ```
 
 `bun run dev` needs the client reachable on the remote debugging port; add `--launch` and it starts Spotify for you.
+
+Everything worth testing lives in `logic.ts`: the state class mapping, the section variables, the width gate and the preload decisions. It imports neither the runtime URLs nor the ambient globals, so `bun run test` runs it under `node --test` directly. The DOM half is verified live through `bun run dev`.
 
 ---
 

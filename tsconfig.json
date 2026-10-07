@@ -10,7 +10,9 @@
     "strict": false,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "types": [],
+    // node types cover the test harness only; nothing under the module's own
+    // source imports them, which the stdlib boundary check enforces.
+    "types": ["node"],
     "paths": {
       "/modules/*": ["./node_modules/@spicetify/kit/vendor/*"]
     }
