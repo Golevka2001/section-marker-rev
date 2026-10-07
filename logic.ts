@@ -17,38 +17,38 @@ export type MarkerState = "no-data" | "loading" | "data";
 // A class toggled here needs a matching rule in index.scss: that pair is
 // what decides whether the markers show at all.
 export const STATE_CLASS_NAMES = [
-    "section-marker-no-data",
-    "section-marker-loading-data",
-    "section-marker-had-no-data",
-    "section-marker-less-than-two-sections",
+	"section-marker-no-data",
+	"section-marker-loading-data",
+	"section-marker-had-no-data",
+	"section-marker-less-than-two-sections",
 ];
 
 // Data is showing, so nothing needs to gate it.
 const STATE_CLASS: Record<MarkerState, string | null> = {
-    "no-data": "section-marker-no-data",
-    loading: "section-marker-loading-data",
-    data: null,
+	"no-data": "section-marker-no-data",
+	loading: "section-marker-loading-data",
+	data: null,
 };
 
 export type MarkerStateInput = {
-    state: MarkerState
-    hadNoData: boolean
-    sectionCount: number | null
-}
+	state: MarkerState;
+	hadNoData: boolean;
+	sectionCount: number | null;
+};
 
 export function stateClassNames({ state, hadNoData, sectionCount }: MarkerStateInput): string[] {
-    const classes: string[] = [];
+	const classes: string[] = [];
 
-    const stateClass = STATE_CLASS[state];
-    if (stateClass) classes.push(stateClass);
+	const stateClass = STATE_CLASS[state];
+	if (stateClass) classes.push(stateClass);
 
-    if (hadNoData) classes.push("section-marker-had-no-data");
+	if (hadNoData) classes.push("section-marker-had-no-data");
 
-    if (sectionCount !== null && sectionCount < 2) {
-        classes.push("section-marker-less-than-two-sections");
-    }
+	if (sectionCount !== null && sectionCount < 2) {
+		classes.push("section-marker-less-than-two-sections");
+	}
 
-    return classes;
+	return classes;
 }
 
 // Kept as unitless seconds and divided by the track duration in CSS, so a
@@ -58,33 +58,33 @@ export const SECTION_VARIABLES = ["start", "duration", "index"] as const;
 export type SectionVariable = (typeof SECTION_VARIABLES)[number];
 
 export type SectionSpan = {
-    start: number
-    duration: number
-}
+	start: number;
+	duration: number;
+};
 
 export function sectionVariableValues(
-    sections: readonly SectionSpan[],
-    index: number
+	sections: readonly SectionSpan[],
+	index: number,
 ): Record<SectionVariable, string> {
-    const section = sections[index];
+	const section = sections[index];
 
-    return {
-        start: String(section.start),
-        duration: String(section.duration),
-        index: String(index),
-    };
+	return {
+		start: String(section.start),
+		duration: String(section.duration),
+		index: String(index),
+	};
 }
 
 export function sectionVariableName(variable: SectionVariable): string {
-    return `--section-marker-data-${variable}`;
+	return `--section-marker-data-${variable}`;
 }
 
 export function sectionDatasetKey(variable: SectionVariable): string {
-    return `sectionMarkerData${variable[0].toUpperCase()}${variable.slice(1)}`;
+	return `sectionMarkerData${variable[0].toUpperCase()}${variable.slice(1)}`;
 }
 
 export function isTooNarrowForMarkers(barWidth: number, minimumWidth: number): boolean {
-    return barWidth < minimumWidth;
+	return barWidth < minimumWidth;
 }
 
 // How far a marker reaches past the bar line, per side.
@@ -94,38 +94,43 @@ export const MARKER_REACH = 2; // px
 // the playbar taller does not swallow it. Falls back through the coarser
 // measurements when the line element is not there.
 export function markerHeight(
-    measurements: { line?: number; slider?: number; bar?: number },
-    reach: number = MARKER_REACH,
+	measurements: { line?: number; slider?: number; bar?: number },
+	reach: number = MARKER_REACH,
 ): number {
-    const { line, slider, bar } = measurements;
+	const { line, slider, bar } = measurements;
 
-    return (line || slider || bar || 0) + reach;
+	return (line || slider || bar || 0) + reach;
 }
 
-export function nextTrackUri(queue: {
-    nextTracks?: readonly { contextTrack?: { uri?: string } }[] | undefined
-} | undefined | null): string | undefined {
-    return queue?.nextTracks?.[0]?.contextTrack?.uri;
+export function nextTrackUri(
+	queue:
+		| {
+				nextTracks?: readonly { contextTrack?: { uri?: string } }[] | undefined;
+		  }
+		| undefined
+		| null,
+): string | undefined {
+	return queue?.nextTracks?.[0]?.contextTrack?.uri;
 }
 
 // Prefetching from the start of a track would burn a request per listen, on
 // songs the listener is hours away from.
 export function shouldPreloadNextTrack(
-    trackDuration: number,
-    progress: number,
-    leadTime: number = PRELOAD_LEAD_TIME
+	trackDuration: number,
+	progress: number,
+	leadTime: number = PRELOAD_LEAD_TIME,
 ): boolean {
-    return trackDuration - progress < leadTime;
+	return trackDuration - progress < leadTime;
 }
 
 export function shouldPreload(
-    uri: string | undefined,
-    lastUri: string | null,
-    lastTime: number,
-    now: number,
-    debounce: number = PRELOAD_DEBOUNCE
+	uri: string | undefined,
+	lastUri: string | null,
+	lastTime: number,
+	now: number,
+	debounce: number = PRELOAD_DEBOUNCE,
 ): boolean {
-    if (!uri || uri === lastUri) return false;
+	if (!uri || uri === lastUri) return false;
 
-    return now - lastTime >= debounce;
+	return now - lastTime >= debounce;
 }

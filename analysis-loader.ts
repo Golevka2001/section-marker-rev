@@ -1,53 +1,55 @@
-import { client } from "/modules/stdlib/mod.ts"
+import { client } from "/modules/stdlib/mod.ts";
 
-import { hydrateLoading, hydrateEmpty, hydrateAnalysis } from "./interface"
-import { shouldPreload } from "./logic"
+import { hydrateLoading, hydrateEmpty, hydrateAnalysis } from "./interface";
+import { shouldPreload } from "./logic";
 
 export function canThisBeAnalyzed(uriRAW: any) {
-    if (!uriRAW) return false
+	if (!uriRAW) return false;
 
-    const uri = client.uri.from(uriRAW)
-    return uri && uri.type === client.uri.Type.TRACK
+	const uri = client.uri.from(uriRAW);
+	return uri && uri.type === client.uri.Type.TRACK;
 }
 
-let analysisIndex = 0
-let shownURI: string | null = null
+let analysisIndex = 0;
+let shownURI: string | null = null;
 export function showAnalysisForUri(uriRAW: any) {
-    if (uriRAW === shownURI) return
-    shownURI = uriRAW
+	if (uriRAW === shownURI) return;
+	shownURI = uriRAW;
 
-    const thisAnalysisIndex = ++analysisIndex
-    if (!canThisBeAnalyzed(uriRAW)) {
-        hydrateEmpty()
-        return
-    }
+	const thisAnalysisIndex = ++analysisIndex;
+	if (!canThisBeAnalyzed(uriRAW)) {
+		hydrateEmpty();
+		return;
+	}
 
-    hydrateLoading()
+	hydrateLoading();
 
-    Spicetify.getAudioData(uriRAW).then((audioData) => {
-        if (thisAnalysisIndex !== analysisIndex) return
+	Spicetify.getAudioData(uriRAW)
+		.then((audioData) => {
+			if (thisAnalysisIndex !== analysisIndex) return;
 
-        hydrateAnalysis(audioData)
-    }).catch((err) => {
-        console.warn("SECTION-MARKER: Failed to get audio data for", uriRAW, err)
-        if (thisAnalysisIndex !== analysisIndex) return
+			hydrateAnalysis(audioData);
+		})
+		.catch((err) => {
+			console.warn("SECTION-MARKER: Failed to get audio data for", uriRAW, err);
+			if (thisAnalysisIndex !== analysisIndex) return;
 
-        // Forget the URI so a later tick can try again. A failed request is
-        // usually transient, and keeping the URI would leave this track blank
-        // until another one was played.
-        if (shownURI === uriRAW) shownURI = null
+			// Forget the URI so a later tick can try again. A failed request is
+			// usually transient, and keeping the URI would leave this track blank
+			// until another one was played.
+			if (shownURI === uriRAW) shownURI = null;
 
-        hydrateEmpty()
-    })
+			hydrateEmpty();
+		});
 }
 
-let lastPreloadURI: string | null = null
-let lastPreloadTime = 0
+let lastPreloadURI: string | null = null;
+let lastPreloadTime = 0;
 export function preloadAnalysis(uriRAW: any) {
-    if (!shouldPreload(uriRAW, lastPreloadURI, lastPreloadTime, Date.now()) || !canThisBeAnalyzed(uriRAW)) return
+	if (!shouldPreload(uriRAW, lastPreloadURI, lastPreloadTime, Date.now()) || !canThisBeAnalyzed(uriRAW)) return;
 
-    lastPreloadURI = uriRAW
-    lastPreloadTime = Date.now()
+	lastPreloadURI = uriRAW;
+	lastPreloadTime = Date.now();
 
-    Spicetify.getAudioData(uriRAW)
+	Spicetify.getAudioData(uriRAW);
 }

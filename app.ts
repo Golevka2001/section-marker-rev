@@ -1,50 +1,49 @@
-import { client } from "/modules/stdlib/mod.ts"
+import { client } from "/modules/stdlib/mod.ts";
 
-import { injectInterface } from "./interface"
-import { showAnalysisForUri, preloadAnalysis } from "./analysis-loader"
-import { nextTrackUri, shouldPreloadNextTrack } from "./logic"
-
+import { injectInterface } from "./interface";
+import { showAnalysisForUri, preloadAnalysis } from "./analysis-loader";
+import { nextTrackUri, shouldPreloadNextTrack } from "./logic";
 
 // The loader can call the entry more than once per page, so the listeners are
 // attached only on the first run to avoid stacking up duplicates.
-let hasAttached = false
+let hasAttached = false;
 
 async function main() {
 	while (!client.player.data || !client.uri || !client.locale || !client.cosmos || !client.react) {
-		await new Promise(resolve => setTimeout(resolve, 100))
+		await new Promise((resolve) => setTimeout(resolve, 100));
 	}
 
 	// Inject the playbar interface
-	await injectInterface()
+	await injectInterface();
 
-	if (hasAttached) return
-	hasAttached = true
+	if (hasAttached) return;
+	hasAttached = true;
 
 	function getCurrentURI() {
-		const data = client.player.origin.getState()
-		return data.hasContext ? data.item.uri || null : null
+		const data = client.player.origin.getState();
+		return data.hasContext ? data.item.uri || null : null;
 	}
 
 	function refresh() {
-		showAnalysisForUri(getCurrentURI())
+		showAnalysisForUri(getCurrentURI());
 
 		// Preload the next song's data
 		if (shouldPreloadNextTrack(client.player.getDuration(), client.player.getProgress())) {
-			preloadAnalysis(nextTrackUri(Spicetify.Queue))
+			preloadAnalysis(nextTrackUri(Spicetify.Queue));
 		}
 	}
 
 	// Watch for song changes to add the section markers
-	client.player.addEventListener("onprogress", refresh)
+	client.player.addEventListener("onprogress", refresh);
 
 	// The player only ticks while it is playing, so a track that is already
 	// loaded when the module starts would sit there blank until the user
 	// skipped or resumed.
-	client.player.addEventListener("songchange", refresh)
-	client.player.addEventListener("nowplaying", refresh)
+	client.player.addEventListener("songchange", refresh);
+	client.player.addEventListener("nowplaying", refresh);
 
 	// Cover the track that is already playing right now
-	refresh()
+	refresh();
 }
 
-export default main
+export default main;
