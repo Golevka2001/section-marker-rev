@@ -9,38 +9,28 @@ This extension adds markers and a highlighted background to the different sectio
 
 The sections are fetched through Spotify's [Audio Analysis Web API](https://developer.spotify.com/documentation/web-api/reference/get-audio-analysis).
 
-![Showcase](https://github.com/Aimarekin/Aimarekins-Spicetify-Extensions/blob/main/section-marker/assets/samples_reduced.gif?raw=true)
+![Showcase](README.assets/showcase.gif)
 
-This extension has been tested with all major functional themes. Below are some examples:
+This extension has been tested with the following themes:
 
-![Default Example](https://github.com/Aimarekin/Aimarekins-Spicetify-Extensions/blob/main/section-marker/assets/example_default.png?raw=true)
-![Sleek Example](https://github.com/Aimarekin/Aimarekins-Spicetify-Extensions/blob/main/section-marker/assets/example_sleek.png?raw=true)
-![Blossom Example](https://github.com/Aimarekin/Aimarekins-Spicetify-Extensions/blob/main/section-marker/assets/example_blossom.png?raw=true)
-![Catpuccin Example](https://github.com/Aimarekin/Aimarekins-Spicetify-Extensions/blob/main/section-marker/assets/example_catpuccin.png?raw=true)
-![Ziro Example](https://github.com/Aimarekin/Aimarekins-Spicetify-Extensions/blob/main/section-marker/assets/example_ziro.png?raw=true)
-![Comfy Example](https://github.com/Aimarekin/Aimarekins-Spicetify-Extensions/blob/main/section-marker/assets/example_comfy.png?raw=true)
-![Bloom Example](https://github.com/Aimarekin/Aimarekins-Spicetify-Extensions/blob/main/section-marker/assets/example_bloom.png?raw=true)
-![Galaxy Example](https://github.com/Aimarekin/Aimarekins-Spicetify-Extensions/blob/main/section-marker/assets/example_galaxy.png?raw=true)
-![Nord Example](https://github.com/Aimarekin/Aimarekins-Spicetify-Extensions/blob/main/section-marker/assets/example_nord.png?raw=true)
-![Retroblur Example](https://github.com/Aimarekin/Aimarekins-Spicetify-Extensions/blob/main/section-marker/assets/example_retroblur.png?raw=true)
+![Default](README.assets/default.png)
+![Dribbblish](README.assets/dribbblish-base.png)
+![Dribbblish White](README.assets/dribbblish-white.png)
+![Flow Pink](README.assets/flow-pink.png)
+![Sleek Wealthy](README.assets/sleek-wealthy.png)
+![Text Spotify](README.assets/text-spotify.png)
+![Text Kanagawa](README.assets/text-kanagawa.png)
 
-Yes, even sidebar controls:
+And in the mini player:
 
-![Sidebar controls Example](https://github.com/Aimarekin/Aimarekins-Spicetify-Extensions/blob/main/section-marker/assets/example_sidebar_controls.png?raw=true)
+![Mini player](README.assets/mini-player.png)
 
-The markers will be automatically hidden
-if the playbar is too thin, which would make them look too cramped.
-
-They are shown in the playbar and in the mini player. The mini player is a
-separate picture-in-picture window, so the extension sets up its own copy of
-the markers in it. Because that window is only ever as wide as the window
-itself, it hides them at a lower width than the playbar does.
-
-**Notice**: Nord is not yet fully compatible and you may notice a small offset - a fix has been proposed to Nord's developers.
+The markers will be automatically hidden if the playbar is too narrow, which would make them look too cramped.
 
 Sections are not available on local files due to Spotify limitations. Podcasts do not have sections.
 
 ## Installation
+
 This is a Spicetify v3 module. Install it from the Spicetify Marketplace once published, or from a packed build:
 
 ```bash
@@ -51,6 +41,7 @@ bunx spicetify-kit install dist/section-marker-rev@2.0.0   # sideload into a run
 `spicetify-kit install` also accepts a `.zip`, so it can be pointed at a build attached to a release.
 
 ## Theming
+
 If you are a theme developer, or would like to modify the aspect of this extension, you can modify the CSS rules applied by this extension. Head to [index.scss](https://github.com/Golevka2001/section-marker-rev/blob/main/index.scss) to see the applied SCSS.
 
 This file is not plain CSS - it is SCSS, an extension of CSS that allows for an expanded syntax. It is compiled to CSS when the extension is compiled. To see the plain CSS, you can compile the SCSS with an [online tool](https://www.sassmeister.com), or inspect it from within Spicetify. Run `spicetify enable-dev-tools` to open Spicetify with devtools enabled (`CTRL+SHIFT+I`).
@@ -59,10 +50,9 @@ The marker's own appearance is driven by two custom properties, `--section-marke
 
 The colour follows the theme rather than being a fixed white, so the markers stay visible on a light theme's progress bar. It resolves through `--spice-text`, then the client's own `--text-base`, then a literal white for a client that declares neither — the same fallback chain the rest of the client uses. The wash behind the alternating sections takes its tint from that colour, so it darkens a light bar rather than washing white over it.
 
-Progress bar height is measured at runtime and published as `--section-marker-playbar-height` on each progress bar, so the markers match the bar whatever height the theme uses.
+Progress bar height is measured at runtime and published as `--section-marker-playbar-height` on each progress bar. It is measured from the line the theme actually draws rather than the progress bar component around it, plus a small fixed reach, so the markers keep standing proud of the line however tall the playbar is.
 
 ## Building
-This module is built with [spicetify-kit](https://spicetify.app/docs/development/) and managed with [bun](https://bun.sh/).
 
 ```bash
 bun install       # install dependencies
@@ -72,14 +62,8 @@ bun run build     # bundle into dist/section-marker-rev@<version>
 bun run dev       # watch, rebuild and hot-push into a running client
 ```
 
-`bun run dev` needs the client reachable on the remote debugging port; add `--launch` and it starts Spotify for you.
-
-Everything worth testing lives in `logic.ts`: the state class mapping, the section variables, the width gate and the preload decisions. It imports neither the runtime URLs nor the ambient globals, so `bun run test` runs it under `node --test` directly. The DOM half is verified live through `bun run dev`.
-
 ---
 
 [Source code available on GitHub](https://github.com/Golevka2001/section-marker-rev)
 
 Original project: [Aimarekin/Aimarekins-Spicetify-Extensions](https://github.com/Aimarekin/Aimarekins-Spicetify-Extensions/tree/main/section-marker)
-
-[![Github Stars badge](https://img.shields.io/github/stars/Aimarekin/Aimarekins-Spicetify-Extensions?logo=github&style=social)](https://github.com/Aimarekin/Aimarekins-Spicetify-Extensions)
