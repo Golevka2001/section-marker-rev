@@ -1,7 +1,7 @@
 # Section Marker Rev
 
 > [!NOTE]
-> Fork of [Section Marker](https://github.com/Aimarekin/Aimarekins-Spicetify-Extensions/tree/main/section-marker) (from [Aimarekin's Spicetify Extensions](https://github.com/Aimarekin/Aimarekins-Spicetify-Extensions)), ported to the Spicetify v3 module standard and revised. Original work by Aimarekin and Golevka2001.
+> Fork of [Section Marker](https://github.com/Aimarekin/Aimarekins-Spicetify-Extensions/tree/main/section-marker) (from [Aimarekin's Spicetify Extensions](https://github.com/Aimarekin/Aimarekins-Spicetify-Extensions)), ported to the Spicetify v3 module standard and revised.
 
 See a song's highlighted sections straight from your playbar.
 
@@ -25,20 +25,15 @@ And in the mini player:
 
 ![Mini player](README.assets/mini-player.png)
 
-The markers will be automatically hidden if the playbar is too narrow, which would make them look too cramped.
-
 Sections are not available on local files due to Spotify limitations. Podcasts do not have sections.
 
 ## Installation
 
-This is a Spicetify v3 module. Install it from the Spicetify Marketplace once published, or from a packed build:
+Install it from the Spicetify Marketplace, or
 
-```bash
-bunx spicetify-kit pack dist/section-marker-rev@2.0.0      # zip the build, prints its sha256
-bunx spicetify-kit install dist/section-marker-rev@2.0.0   # sideload into a running client
+```sh
+spicetify pkg install section-marker-rev
 ```
-
-`spicetify-kit install` also accepts a `.zip`, so it can be pointed at a build attached to a release.
 
 ## Theming
 
@@ -61,9 +56,3 @@ bun run test      # unit tests for the pure logic in logic.ts
 bun run build     # bundle into dist/section-marker-rev@<version>
 bun run dev       # watch, rebuild and hot-push into a running client
 ```
-
----
-
-[Source code available on GitHub](https://github.com/Golevka2001/section-marker-rev)
-
-Original project: [Aimarekin/Aimarekins-Spicetify-Extensions](https://github.com/Aimarekin/Aimarekins-Spicetify-Extensions/tree/main/section-marker)
