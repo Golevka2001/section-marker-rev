@@ -1,7 +1,7 @@
 {
 	"name": "section-marker-rev",
 	"kind": "extension",
-	"version": "2.0.0",
+	"version": "2.0.1",
 	"authors": ["Aimarekin", "Golevka2001"],
 	"description": "See a song's highlighted sections straight from your playbar.",
 	"entries": {

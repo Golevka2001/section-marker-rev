@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.0.1] - 2026-10-10
+
+### Added
+
+- Analysis results are cached per track, so replaying one costs no further requests.
+
+### Fixed
+
+- A progress bar that turned up within the wait no longer logs a timeout warning afterwards.
+
+### Removed
+
+- The playbar width gate, which hid the markers on a narrow progress bar.
+
+### Changed
+
+- Each section's values are published as data attributes, so a theme can select a single section.
+
 ## [2.0.0] - 2026-10-07
 
 First release of the Spicetify v3 port, forked from [Aimarekin's section-marker](https://github.com/Aimarekin/Aimarekins-Spicetify-Extensions/tree/main/section-marker).
@@ -25,4 +43,5 @@ First release of the Spicetify v3 port, forked from [Aimarekin's section-marker]
 - The alternating sections carry a wash of their own, so they read where the backdrop filter does not apply.
 - Ported to the v3 module standard.
 
+[2.0.1]: https://github.com/Golevka2001/section-marker-rev/releases/tag/section-marker-rev@2.0.1
 [2.0.0]: https://github.com/Golevka2001/section-marker-rev/releases/tag/section-marker-rev@2.0.0
