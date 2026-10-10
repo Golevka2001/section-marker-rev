@@ -1,8 +1,5 @@
 import { waitForElm, watchForElement } from "./dom-watcher";
 import {
-	MINIMUM_MARKERS_WIDTH,
-	MINIMUM_MINI_PLAYER_MARKERS_WIDTH,
-	isTooNarrowForMarkers,
 	markerHeight,
 	sectionDatasetKey,
 	sectionVariableName,
@@ -49,7 +46,7 @@ export async function injectInterface() {
 		".playback-bar .playback-progressbar",
 		await waitForElm("#main > .Root"),
 		(el) => {
-			mountProgressBar(el as HTMLElement, MINIMUM_MARKERS_WIDTH);
+			mountProgressBar(el as HTMLElement);
 		},
 		unmountProgressBar,
 	);
@@ -107,7 +104,7 @@ function pollMiniPlayer() {
 			// The volume slider wears the same classes and must not be marked up
 			if (bar.closest(".volume-bar__slider-container")) continue;
 
-			mountProgressBar(bar, MINIMUM_MINI_PLAYER_MARKERS_WIDTH);
+			mountProgressBar(bar);
 		}
 	}, MINI_PLAYER_POLL_INTERVAL);
 }
@@ -229,7 +226,7 @@ function getBarLine(sliderArea: HTMLElement) {
 	);
 }
 
-function mountProgressBar(bar: HTMLElement, minimumMarkersWidth: number) {
+function mountProgressBar(bar: HTMLElement) {
 	if (mounts.some((mount) => mount.bar === bar)) return;
 
 	const doc = bar.ownerDocument;
@@ -262,13 +259,6 @@ function mountProgressBar(bar: HTMLElement, minimumMarkersWidth: number) {
 			bar: bar.clientHeight,
 		});
 		bar.style.setProperty("--section-marker-playbar-height", height + "px");
-
-		// Scoped to our container rather than the bar: the client re-renders
-		// the bar and overwrites its class attribute, which would drop the gate.
-		markerContainer.classList.toggle(
-			"section-marker-playbar-below-marker-width",
-			isTooNarrowForMarkers(bar.clientWidth, minimumMarkersWidth),
-		);
 	}
 	setDimensions();
 
@@ -289,7 +279,6 @@ function unmountProgressBar(bar: Node) {
 	mounts = mounts.filter((candidate) => candidate !== mount);
 	mount.resizeObserver.disconnect();
 	mount.bar.classList.remove("section-marker-injected-playbar");
-	mount.markerContainer.classList.remove("section-marker-playbar-below-marker-width");
 	mount.sectionContainer.remove();
 	mount.markerContainer.remove();
 }

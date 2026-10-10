@@ -41,15 +41,6 @@
 	}
 }
 
-.section-marker-playbar-below-marker-width {
-	// The class sits on the markers container itself, so it has to match the
-	// element carrying it as well as one carrying it further up.
-	.section-marker-markers,
-	&.section-marker-markers {
-		display: none;
-	}
-}
-
 // Don't transition if transitiotining from no data
 .section-marker-had-no-data {
 	.section-marker-marker,

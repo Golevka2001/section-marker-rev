@@ -7,10 +7,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import {
-	isTooNarrowForMarkers,
 	markerHeight,
-	MINIMUM_MARKERS_WIDTH,
-	MINIMUM_MINI_PLAYER_MARKERS_WIDTH,
 	nextTrackUri,
 	sectionDatasetKey,
 	sectionVariableName,
@@ -132,12 +129,6 @@ test("each variable has a matching custom property and dataset key", () => {
 	assert.equal(sectionDatasetKey("track-duration"), "sectionMarkerDataTrackDuration");
 });
 
-test("the width gate hides markers strictly below its minimum", () => {
-	assert.equal(isTooNarrowForMarkers(MINIMUM_MARKERS_WIDTH - 1, MINIMUM_MARKERS_WIDTH), true);
-	assert.equal(isTooNarrowForMarkers(MINIMUM_MARKERS_WIDTH, MINIMUM_MARKERS_WIDTH), false);
-	assert.equal(isTooNarrowForMarkers(MINIMUM_MARKERS_WIDTH + 1, MINIMUM_MARKERS_WIDTH), false);
-});
-
 test("the marker is measured off the line, not the playbar", () => {
 	// The line is what the theme actually draws; a taller playbar growing
 	// around it must not change the height.
@@ -149,16 +140,6 @@ test("marker height falls back when the line element is missing", () => {
 	assert.equal(markerHeight({ slider: 12, bar: 60 }), 14);
 	assert.equal(markerHeight({ bar: 60 }), 62);
 	assert.equal(markerHeight({ line: 0, slider: 0, bar: 0 }), 2);
-});
-
-test("the mini player is held to its own, lower minimum", () => {
-	// Whatever the two numbers are, the mini player's has to sit below the
-	// playbar's, or there is no width where the two gates disagree.
-	assert.ok(MINIMUM_MINI_PLAYER_MARKERS_WIDTH < MINIMUM_MARKERS_WIDTH);
-
-	const between = (MINIMUM_MARKERS_WIDTH + MINIMUM_MINI_PLAYER_MARKERS_WIDTH) / 2;
-	assert.equal(isTooNarrowForMarkers(between, MINIMUM_MARKERS_WIDTH), true);
-	assert.equal(isTooNarrowForMarkers(between, MINIMUM_MINI_PLAYER_MARKERS_WIDTH), false);
 });
 
 test("the queued track's uri is read off the context track", () => {

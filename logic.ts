@@ -4,10 +4,6 @@
  * and takes the results back out.
  */
 
-export const MINIMUM_MARKERS_WIDTH = 300; // px
-// The mini player is a small floating window, so it stays readable with
-// fewer pixels than the full width playbar does.
-export const MINIMUM_MINI_PLAYER_MARKERS_WIDTH = 200; // px
 const PRELOAD_LEAD_TIME = 10000; // ms
 // Bounds how often a preload may repeat while the track nears its end.
 const PRELOAD_DEBOUNCE = 15000; // ms
@@ -97,10 +93,6 @@ export function sectionDatasetKey(variable: DataVariable): string {
 	const camel = variable.replace(/-(\w)/g, (_, letter: string) => letter.toUpperCase());
 
 	return `sectionMarkerData${camel[0].toUpperCase()}${camel.slice(1)}`;
-}
-
-export function isTooNarrowForMarkers(barWidth: number, minimumWidth: number): boolean {
-	return barWidth < minimumWidth;
 }
 
 // How far a marker reaches past the bar line, per side.
