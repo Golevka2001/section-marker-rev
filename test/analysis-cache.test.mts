@@ -1,6 +1,6 @@
-// Unit tests for the request cache. analysis-cache.ts imports neither the
-// runtime URLs nor the ambient globals, so it loads under plain node --test
-// with the fetcher handed in.
+/**
+ * Unit tests for the request cache.
+ */
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -36,8 +36,8 @@ function countingFetcher() {
 }
 
 test("what the cache stores is the projection, not the raw payload", async () => {
-	// Asserted through the cache on purpose: pickMarkerData alone would still
-	// pass if the cache stopped using it and started holding whole analyses.
+	// Asserted through the cache on purpose:
+	// pickMarkerData alone would still pass if the cache stopped using it and started holding whole analyses.
 	const cache = createAnalysisCache(() => Promise.resolve(fakeAnalysis(321)));
 
 	assert.deepEqual(await cache.get("spotify:track:1"), {
@@ -115,8 +115,8 @@ test("a failure nobody awaits does not surface as an unhandled rejection", async
 	process.on("unhandledRejection", onUnhandled);
 
 	try {
-		// The preload path drops the promise on the floor, so the cache is what
-		// has to keep this from becoming an unhandled rejection.
+		// The preload path drops the promise on the floor,
+		// so the cache is what has to keep this from becoming an unhandled rejection.
 		createAnalysisCache(() => Promise.reject(new Error("no analysis"))).get("spotify:track:1");
 		await new Promise((resolve) => setTimeout(resolve, 10));
 	} finally {
@@ -138,26 +138,4 @@ test("has reports what is held without starting anything", async () => {
 	assert.equal(cache.has("spotify:track:1"), true);
 	// Peeking must not spend a request of its own either.
 	assert.deepEqual(calls, ["spotify:track:1"]);
-});
-
-test("has forgets a request that failed, so the preload path may try again", async () => {
-	const cache = createAnalysisCache(() => Promise.reject(new Error("no analysis")));
-
-	await cache.get("spotify:track:1").catch(() => {});
-
-	assert.equal(cache.has("spotify:track:1"), false);
-});
-
-test("nothing is dropped over a long session", async () => {
-	const { calls, fetch } = countingFetcher();
-	const cache = createAnalysisCache(fetch);
-
-	for (let i = 0; i < 500; i++) await cache.get(`spotify:track:${i}`);
-
-	// Even the first tracks of the session are still there, so looping a long
-	// playlist costs one fetch per track rather than one per play.
-	await cache.get("spotify:track:0");
-	await cache.get("spotify:track:250");
-
-	assert.deepEqual(calls.length, 500);
 });

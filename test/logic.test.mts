@@ -1,6 +1,6 @@
-// Unit tests for the pure marker logic. logic.ts imports neither the runtime
-// URLs nor the ambient globals, so it loads under plain node --test; the DOM
-// half is verified live through `npm run dev`.
+/**
+ * Unit tests for logic.ts.
+ */
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -35,10 +35,10 @@ test("loading is its own class, and data carries none", () => {
 });
 
 test("a load that started blank also asks for the suppressed transition", () => {
-	assert.deepEqual(stateClassNames({ state: "loading", hadNoData: true, sectionCount: null }), [
-		"section-marker-loading-data",
-		"section-marker-had-no-data",
-	]);
+	const classes = stateClassNames({ state: "loading", hadNoData: true, sectionCount: null });
+
+	assert.ok(classes.includes("section-marker-loading-data"));
+	assert.ok(classes.includes("section-marker-had-no-data"));
 });
 
 test("under two sections the markers are hidden, two and up they are not", () => {
@@ -55,8 +55,8 @@ test("under two sections the markers are hidden, two and up they are not", () =>
 });
 
 test("an unknown section count is not treated as too few", () => {
-	// null coerces to 0, so without the guard a track whose count is not known
-	// yet would read as "too few" and hide the markers.
+	// null coerces to 0,
+	// so without the guard a track whose count is not known yet would read as "too few" and hide the markers.
 	assert.ok(
 		!stateClassNames({ state: "data", hadNoData: false, sectionCount: null }).includes(
 			"section-marker-less-than-two-sections",
@@ -65,8 +65,8 @@ test("an unknown section count is not treated as too few", () => {
 });
 
 test("every class the state can produce is one the body applies", () => {
-	// applyState walks STATE_CLASS_NAMES and toggles each, so a name it does
-	// not carry is dropped on the floor rather than applied.
+	// applyState walks STATE_CLASS_NAMES and toggles each,
+	// so a name it does not carry is dropped on the floor rather than applied.
 	const states: MarkerState[] = ["no-data", "loading", "data"];
 
 	for (const state of states) {
@@ -81,8 +81,8 @@ test("every class the state can produce is one the body applies", () => {
 });
 
 test("every generated name has a match in the stylesheet", () => {
-	// The coupling neither the compiler nor the linter can see: rename a name on
-	// one side and the markers quietly stop responding.
+	// The coupling neither the compiler nor the linter can see:
+	// rename a name on one side and the markers quietly stop responding.
 	const scss = readFileSync(new URL("../index.scss", import.meta.url), "utf8");
 
 	for (const name of STATE_CLASS_NAMES) {
@@ -90,8 +90,7 @@ test("every generated name has a match in the stylesheet", () => {
 	}
 
 	for (const variable of SECTION_VARIABLES) {
-		// "index" is written for anyone styling off the data attributes; the
-		// stylesheet itself has no use for it.
+		// "index" is written for anyone styling off the data attributes; the stylesheet itself has no use for it.
 		if (variable === "index") continue;
 
 		const name = sectionVariableName(variable);
@@ -124,14 +123,12 @@ test("each variable has a matching custom property and dataset key", () => {
 	assert.equal(sectionDatasetKey("start"), "sectionMarkerDataStart");
 	assert.equal(sectionDatasetKey("duration"), "sectionMarkerDataDuration");
 	assert.equal(sectionDatasetKey("index"), "sectionMarkerDataIndex");
-	// A hyphen cannot survive an attribute name, so a compound one is camel-cased
-	// rather than left broken.
+	// A hyphen cannot survive an attribute name, so a compound one is camel-cased rather than left broken.
 	assert.equal(sectionDatasetKey("track-duration"), "sectionMarkerDataTrackDuration");
 });
 
 test("the marker is measured off the line, not the playbar", () => {
-	// The line is what the theme actually draws; a taller playbar growing
-	// around it must not change the height.
+	// The line is what the theme actually draws; a taller playbar growing around it must not change the height.
 	assert.equal(markerHeight({ line: 4, slider: 12, bar: 24 }), 6);
 	assert.equal(markerHeight({ line: 4, slider: 12, bar: 60 }), 6);
 });

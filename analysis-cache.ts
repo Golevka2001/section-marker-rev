@@ -1,12 +1,12 @@
 /**
- * Request cache for the marker data. No runtime URLs and no ambient globals, so
- * the whole file runs under `node --test`; the caller passes the fetcher in.
+ * Request cache for the marker data.
+ * It stores the results of analysis requests and provides a way to retrieve them.
+ * The cache is keyed by the URI of the audio file.
+ * The cache is cleared when Spotify restartsthe plugin is updated, or the extension is reloaded.
  */
 
 import type { MarkerAnalysis } from "./logic";
 
-// The stored form is a projection rather than the raw response: a full analysis
-// is mostly bars, beats, segments and tatums, none of which reach a marker.
 function pickMarkerData(audioData: AudioAnalysis.Analysis): MarkerAnalysis {
 	return {
 		track: { duration: audioData.track.duration },
@@ -21,9 +21,8 @@ export type AnalysisCache = {
 };
 
 export function createAnalysisCache(fetchAnalysis: (uri: string) => Promise<AudioAnalysis.Analysis>): AnalysisCache {
-	// The promise is stored rather than the result, so a request still in flight
-	// is handed to whoever asks next instead of being sent again. Nothing is ever
-	// dropped: at tens of bytes a track, a cap would cost more than it saves.
+	// The promise is stored rather than the result,
+	// so a request still in flight is handed to whoever asks next instead of being sent again.
 	const cached = new Map<string, Promise<MarkerAnalysis>>();
 
 	return {
@@ -35,9 +34,8 @@ export function createAnalysisCache(fetchAnalysis: (uri: string) => Promise<Audi
 
 			const request = fetchAnalysis(uri).then(pickMarkerData);
 
-			// Attached before the promise can settle and never taken off: a
-			// rejected preload has no other handler, and dropping the entry is
-			// what lets a later tick retry.
+			// Attached before the promise can settle and never taken off:
+			// a rejected preload has no other handler, and dropping the entry is what lets a later tick retry.
 			request.catch(() => {
 				if (cached.get(uri) === request) cached.delete(uri);
 			});

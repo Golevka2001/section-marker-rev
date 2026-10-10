@@ -1,3 +1,8 @@
+/**
+ * Owns the marker DOM: the containers, the bars, and the values painted into them.
+ * The mini player renders into a document of its own, so it is set up separately.
+ */
+
 import { waitForElm, watchForElement } from "./dom-watcher";
 import {
 	markerHeight,
@@ -27,8 +32,8 @@ let mounts: Mount[] = [];
 let watchedDocuments: Document[] = [];
 let lastAnalysis: MarkerAnalysis | null = null;
 
-// State lives here rather than per document, so a document that joins late
-// still gets it applied.
+// State lives here rather than per document,
+// so a document that joins late still gets it applied.
 let state: MarkerState = "no-data";
 let hadNoData = false;
 let sectionCount: number | null = null;
@@ -51,8 +56,6 @@ export async function injectInterface() {
 		unmountProgressBar,
 	);
 
-	// The mini player is a document of its own, with neither our stylesheet
-	// nor our DOM in it, so it needs setting up separately.
 	watchMiniPlayer();
 }
 
@@ -75,9 +78,8 @@ function watchMiniPlayer() {
 
 let miniPlayerPoll: ReturnType<typeof setInterval> | null = null;
 
-// The document from the enter event is not the one the mini player ends up
-// in: the client replaces it in chunks while rendering. So the live window is
-// re-resolved on a timer instead of being observed.
+// The document from the enter event is not the one the mini player ends up in:
+// the client replaces it in chunks, so the live window is re-resolved on a timer.
 const MINI_PLAYER_POLL_INTERVAL = 200; // ms
 
 function pollMiniPlayer() {
@@ -150,9 +152,8 @@ function getOwnStyleRules() {
 		return found;
 	};
 
-	// The v3 loader hands a module's CSS over on adoptedStyleSheets, which
-	// document.styleSheets omits. Once a copy is pinned the rules turn up in
-	// both places, hence the de-duplication.
+	// The v3 loader hands a module's CSS over on adoptedStyleSheets, which document.styleSheets omits.
+	// Once a copy is pinned the rules turn up in both places, hence the de-duplication.
 	const rules = Array.from(
 		new Set([
 			...Array.from(document.adoptedStyleSheets).flatMap(collect),
@@ -166,11 +167,10 @@ function getOwnStyleRules() {
 	return rules;
 }
 
-// The loader periodically detaches the stylesheet and puts it back a frame or
-// two later, which reads as the progress bar flickering. A plain <style> in the
-// head is not something it manages, so a pinned copy covers those gaps.
-// STYLE_PIN_ATTEMPTS rounds of STYLE_PIN_INTERVAL is how long a missing
-// stylesheet is waited out before the copy is given up on.
+// The loader periodically detaches the stylesheet and puts it back a frame or two later,
+// which reads as the progress bar flickering.
+// A plain <style> in the head is not something it manages, so a pinned copy covers those gaps.
+// STYLE_PIN_ATTEMPTS rounds of STYLE_PIN_INTERVAL is how long a missing stylesheet is waited out.
 const STYLE_PIN_ATTEMPTS = 20;
 const STYLE_PIN_INTERVAL = 250; // ms
 let stylePinAttempts = 0;
@@ -204,8 +204,7 @@ function copyStyles(doc: Document) {
 	(doc.head ?? doc.documentElement).appendChild(style);
 }
 
-// The slider area is only as tall as the bar line and clips what overflows it,
-// so the markers, which reach out above and below, cannot live inside it.
+// The slider area is only as tall as the bar line and clips what overflows it, so the markers cannot live inside it.
 function getSliderArea(bar: HTMLElement) {
 	return (
 		bar.querySelector<HTMLElement>(".x-progressBar-sliderArea") ??
@@ -214,10 +213,8 @@ function getSliderArea(bar: HTMLElement) {
 	);
 }
 
-// The element that actually paints the line, as opposed to the progress bar
-// component around it: a theme that gives the playbar more height also gives
-// the component more height, but the line stays as thick as it was. Measuring
-// against the component is what leaves a marker sitting inside a tall bar.
+// The element that actually paints the line, not the progress bar component around it:
+// a taller playbar grows the component but not the line, and measuring the component leaves a marker inside a tall bar.
 function getBarLine(sliderArea: HTMLElement) {
 	return (
 		sliderArea.querySelector<HTMLElement>(".x-progressBar-foreground") ??
@@ -242,17 +239,16 @@ function mountProgressBar(bar: HTMLElement) {
 
 	const sliderArea = getSliderArea(bar);
 
-	// Inside the slider area, so they match the bar's height and the
-	// backdrop-filter samples the played fill behind them.
+	// Inside the slider area, so they match the bar's height,
+	// and the backdrop-filter samples the played fill behind them.
 	sliderArea.appendChild(sectionContainer);
 
-	// On the bar itself, which is positioned and does not clip. Same width as
-	// the sections, so the percentages still line up.
+	// On the bar itself, which is positioned and does not clip.
+	// Same width as the sections, so the percentages still line up.
 	bar.appendChild(markerContainer);
 
 	function setDimensions() {
-		// The marker is sized off the line plus a fixed reach, so it keeps
-		// standing proud of the line on a theme that makes the playbar taller.
+		// Sized off the line plus a fixed reach, so it stays proud of it on a taller playbar.
 		const height = markerHeight({
 			line: getBarLine(sliderArea)?.clientHeight,
 			slider: sliderArea.clientHeight,
@@ -312,8 +308,7 @@ export function hydrateEmpty() {
 }
 
 export function hydrateLoading() {
-	// Remember whether this load starts blank, so the markers do not slide in
-	// from their previous positions afterwards.
+	// Remember whether this load starts blank, so the markers do not slide in from their previous positions.
 	hadNoData = state === "no-data";
 	state = "loading";
 
@@ -389,8 +384,8 @@ function applyAnalysis(mount: Mount, audioData: MarkerAnalysis) {
 		}
 	};
 
-	// Values go in a frame later so the new elements can transition in. An
-	// offscreen document has its rAF throttled away, so there they go direct.
+	// Values go in a frame later so the new elements can transition in.
+	// An offscreen document has its rAF throttled away, so there they go direct.
 	if (mount.doc.hidden) apply();
 	else view.requestAnimationFrame(apply);
 }

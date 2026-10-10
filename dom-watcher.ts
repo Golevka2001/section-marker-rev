@@ -1,3 +1,8 @@
+/**
+ * A set of utilities for watching the DOM for the presence of specific elements.
+ */
+
+// How long to wait for an element to appear before timing out.
 const WAIT_TIMEOUT = 5000; // ms
 
 export function waitForElm(selector: string): Promise<HTMLElement> {
@@ -68,8 +73,7 @@ export function watchForElement(
 	function inspect(node: Node) {
 		if (!(node instanceof HTMLElement)) return;
 
-		// The added node itself may be the match, e.g. when the client swaps
-		// the whole progress bar instead of filling in a placeholder
+		// The added node itself may be the match.
 		if (node.matches(selector)) elementFound(node);
 
 		node.querySelectorAll(selector).forEach(elementFound);

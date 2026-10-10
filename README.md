@@ -47,12 +47,16 @@ The colour follows the theme rather than being a fixed white, so the markers sta
 
 Progress bar height is measured at runtime and published as `--section-marker-playbar-height` on each progress bar. It is measured from the line the theme actually draws rather than the progress bar component around it, plus a small fixed reach, so the markers keep standing proud of the line however tall the playbar is.
 
-## Building
+Each section's values are published twice over, as the custom properties above and as data attributes on the element itself: `data-section-marker-data-start`, `data-section-marker-data-duration` and `data-section-marker-data-index`, with the track's total length on the `body` as `data-section-marker-data-track-duration`. A selector cannot reach a custom property, so the attributes are what let a theme pick out a single section.
 
-```bash
+A slot keeps its attributes while it is marked `section-marker-not-exists`, so a selector written that way still matches a leading section the analysis never delivered.
+
+## Development
+
+```sh
 bun install       # install dependencies
 bun run check     # tsc + module standard audit
-bun run test      # unit tests for the pure logic in logic.ts
+bun run test      # run unit tests
 bun run build     # bundle into dist/section-marker-rev@<version>
 bun run dev       # watch, rebuild and hot-push into a running client
 ```

@@ -1,3 +1,9 @@
+/**
+ * Loads marker data for whichever track is playing, and preloads the next one.
+ * Every request goes through the shared cache,.
+ * A response that arrives after the track changed is dropped rather than shown.
+ */
+
 import { client } from "/modules/stdlib/mod.ts";
 
 import { hydrateLoading, hydrateEmpty, hydrateAnalysis } from "./interface";
@@ -47,9 +53,9 @@ export function showAnalysisForUri(uriRAW: any) {
 			console.warn("SECTION-MARKER: Failed to get audio data for", uriRAW, err);
 			if (thisAnalysisIndex !== analysisIndex) return;
 
-			// Forget the URI so a later tick can try again. A failed request is
-			// usually transient, and keeping the URI would leave this track blank
-			// until another one was played.
+			// Forget the URI so a later tick can try again.
+			// A failed request is usually transient,
+			// and keeping the URI would leave this track blank until another one was played.
 			if (shownURI === uriRAW) shownURI = null;
 
 			hydrateEmpty();

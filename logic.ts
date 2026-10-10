@@ -1,17 +1,14 @@
-/**
- * Pure marker logic: no runtime URLs, no ambient globals, no DOM, so the
- * whole file runs under `node --test`. The DOM half passes values in here
- * and takes the results back out.
- */
-
+// How far in advance to start preloading the next track's analysis.
 const PRELOAD_LEAD_TIME = 10000; // ms
 // Bounds how often a preload may repeat while the track nears its end.
 const PRELOAD_DEBOUNCE = 15000; // ms
+// A marker stands proud of the line by a fixed reach, per side.
+const MARKER_REACH = 1; // px
 
 export type MarkerState = "no-data" | "loading" | "data";
 
-// A class toggled here needs a matching rule in index.scss: that pair is
-// what decides whether the markers show at all.
+// A class toggled here needs a matching rule in index.scss:
+// that pair is what decides whether the markers show at all.
 export const STATE_CLASS_NAMES = [
 	"section-marker-no-data",
 	"section-marker-loading-data",
@@ -47,14 +44,14 @@ export function stateClassNames({ state, hadNoData, sectionCount }: MarkerStateI
 	return classes;
 }
 
-// Kept as unitless seconds and divided by the track duration in CSS, so a
-// re-render never has to recompute percentages.
+// Kept as unitless seconds and divided by the track duration in CSS,
+// so a re-render never has to recompute percentages.
 export const SECTION_VARIABLES = ["start", "duration", "index"] as const;
 
 export type SectionVariable = (typeof SECTION_VARIABLES)[number];
 
-// Set once per document rather than per marker, since it divides every
-// position the CSS lays out.
+// Set once per document rather than per marker,
+// since it divides every position the CSS lays out.
 export const TRACK_DURATION_VARIABLE = "track-duration";
 
 export type DataVariable = SectionVariable | typeof TRACK_DURATION_VARIABLE;
@@ -64,8 +61,7 @@ export type SectionSpan = {
 	duration: number;
 };
 
-// The only values the markers read. A full analysis also carries bars, beats,
-// segments and tatums, most of the response and none of it rendered.
+// The only values the markers read.
 export type MarkerAnalysis = {
 	track: { duration: number };
 	sections: readonly SectionSpan[];
@@ -95,16 +91,12 @@ export function sectionDatasetKey(variable: DataVariable): string {
 	return `sectionMarkerData${camel[0].toUpperCase()}${camel.slice(1)}`;
 }
 
-// How far a marker reaches past the bar line, per side.
-const MARKER_REACH = 2; // px
-
-// A marker stands proud of the line by a fixed reach, so a theme that makes
-// the playbar taller does not swallow it. Falls back through the coarser
-// measurements when the line element is not there.
+// A marker stands proud of the line by a fixed reach.
+// Falls back through the coarser measurements when the line element is not there.
 export function markerHeight(measurements: { line?: number; slider?: number; bar?: number }): number {
 	const { line, slider, bar } = measurements;
 
-	return (line || slider || bar || 0) + MARKER_REACH;
+	return (line || slider || bar || 0) + MARKER_REACH * 2;
 }
 
 export function nextTrackUri(
@@ -118,8 +110,6 @@ export function nextTrackUri(
 	return queue?.nextTracks?.[0]?.contextTrack?.uri;
 }
 
-// Prefetching from the start of a track would burn a request per listen, on
-// songs the listener is hours away from.
 export function shouldPreloadNextTrack(trackDuration: number, progress: number): boolean {
 	return trackDuration - progress < PRELOAD_LEAD_TIME;
 }
