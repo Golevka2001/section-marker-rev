@@ -13,9 +13,9 @@ export function waitForElm(selector: string): Promise<HTMLElement> {
 			console.warn(
 				"waitForElm has waited for",
 				WAIT_TIMEOUT,
-				"for selector",
+				" for selector",
 				selector,
-				"but it has not yet been found.",
+				" but it has not yet been found.",
 			);
 		}, WAIT_TIMEOUT);
 
