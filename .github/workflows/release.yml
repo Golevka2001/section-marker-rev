@@ -1,29 +1,25 @@
 name: Release
 
-# A published release is the trigger: the tag already says which version
-# ships, so the workflow reads the version from metadata.json at that commit
-# and never has to be told twice.
 on:
    release:
       types: [published]
+   workflow_dispatch:
+      inputs:
+         release-tag:
+            description: Release tag to build and submit
+            required: true
+            type: string
 
 jobs:
-   # Build, pack and sign on a GitHub-hosted runner, from this commit only.
-   # The attestation it produces is what lets the store's validator prove the
-   # zip came out of these steps, so a reviewer reads source rather than a
-   # bundled mod.js.
    build:
       uses: spicetify/actions/.github/workflows/build-module.yml@v1
       permissions:
-         contents: write # upload the zip to this release
-         id-token: write # sign the attestation
-         attestations: write # store it
+         contents: write
+         id-token: write
+         attestations: write
       with:
-         release-tag: ${{ github.event.release.tag_name }}
+         release-tag: ${{ inputs.release-tag || github.event.release.tag_name }}
 
-   # Hand that exact zip to the store. With no token the action prints the
-   # vault entry instead of opening a pull request, so the build can be
-   # verified before a credential is involved.
    submit:
       needs: build
       runs-on: ubuntu-latest
