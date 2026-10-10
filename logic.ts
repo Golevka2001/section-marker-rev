@@ -8,9 +8,9 @@ export const MINIMUM_MARKERS_WIDTH = 300; // px
 // The mini player is a small floating window, so it stays readable with
 // fewer pixels than the full width playbar does.
 export const MINIMUM_MINI_PLAYER_MARKERS_WIDTH = 200; // px
-export const PRELOAD_LEAD_TIME = 10000; // ms
+const PRELOAD_LEAD_TIME = 10000; // ms
 // Bounds how often a preload may repeat while the track nears its end.
-export const PRELOAD_DEBOUNCE = 15000; // ms
+const PRELOAD_DEBOUNCE = 15000; // ms
 
 export type MarkerState = "no-data" | "loading" | "data";
 
@@ -57,9 +57,22 @@ export const SECTION_VARIABLES = ["start", "duration", "index"] as const;
 
 export type SectionVariable = (typeof SECTION_VARIABLES)[number];
 
+// Set once per document rather than per marker, since it divides every
+// position the CSS lays out.
+export const TRACK_DURATION_VARIABLE = "track-duration";
+
+export type DataVariable = SectionVariable | typeof TRACK_DURATION_VARIABLE;
+
 export type SectionSpan = {
 	start: number;
 	duration: number;
+};
+
+// The only values the markers read. A full analysis also carries bars, beats,
+// segments and tatums, most of the response and none of it rendered.
+export type MarkerAnalysis = {
+	track: { duration: number };
+	sections: readonly SectionSpan[];
 };
 
 export function sectionVariableValues(
@@ -75,12 +88,15 @@ export function sectionVariableValues(
 	};
 }
 
-export function sectionVariableName(variable: SectionVariable): string {
+export function sectionVariableName(variable: DataVariable): string {
 	return `--section-marker-data-${variable}`;
 }
 
-export function sectionDatasetKey(variable: SectionVariable): string {
-	return `sectionMarkerData${variable[0].toUpperCase()}${variable.slice(1)}`;
+export function sectionDatasetKey(variable: DataVariable): string {
+	// CSS keeps the kebab form; an attribute name cannot, so it is camel-cased.
+	const camel = variable.replace(/-(\w)/g, (_, letter: string) => letter.toUpperCase());
+
+	return `sectionMarkerData${camel[0].toUpperCase()}${camel.slice(1)}`;
 }
 
 export function isTooNarrowForMarkers(barWidth: number, minimumWidth: number): boolean {
@@ -88,18 +104,15 @@ export function isTooNarrowForMarkers(barWidth: number, minimumWidth: number): b
 }
 
 // How far a marker reaches past the bar line, per side.
-export const MARKER_REACH = 2; // px
+const MARKER_REACH = 2; // px
 
 // A marker stands proud of the line by a fixed reach, so a theme that makes
 // the playbar taller does not swallow it. Falls back through the coarser
 // measurements when the line element is not there.
-export function markerHeight(
-	measurements: { line?: number; slider?: number; bar?: number },
-	reach: number = MARKER_REACH,
-): number {
+export function markerHeight(measurements: { line?: number; slider?: number; bar?: number }): number {
 	const { line, slider, bar } = measurements;
 
-	return (line || slider || bar || 0) + reach;
+	return (line || slider || bar || 0) + MARKER_REACH;
 }
 
 export function nextTrackUri(
@@ -115,22 +128,12 @@ export function nextTrackUri(
 
 // Prefetching from the start of a track would burn a request per listen, on
 // songs the listener is hours away from.
-export function shouldPreloadNextTrack(
-	trackDuration: number,
-	progress: number,
-	leadTime: number = PRELOAD_LEAD_TIME,
-): boolean {
-	return trackDuration - progress < leadTime;
+export function shouldPreloadNextTrack(trackDuration: number, progress: number): boolean {
+	return trackDuration - progress < PRELOAD_LEAD_TIME;
 }
 
-export function shouldPreload(
-	uri: string | undefined,
-	lastUri: string | null,
-	lastTime: number,
-	now: number,
-	debounce: number = PRELOAD_DEBOUNCE,
-): boolean {
+export function shouldPreload(uri: string | undefined, lastUri: string | null, lastTime: number, now: number): boolean {
 	if (!uri || uri === lastUri) return false;
 
-	return now - lastTime >= debounce;
+	return now - lastTime >= PRELOAD_DEBOUNCE;
 }

@@ -1,13 +1,26 @@
 import { client } from "/modules/stdlib/mod.ts";
 
 import { hydrateLoading, hydrateEmpty, hydrateAnalysis } from "./interface";
-import { shouldPreload } from "./logic";
+import { shouldPreload, type MarkerAnalysis } from "./logic";
+import { createAnalysisCache } from "./analysis-cache";
 
 export function canThisBeAnalyzed(uriRAW: any) {
 	if (!uriRAW) return false;
 
 	const uri = client.uri.from(uriRAW);
 	return uri && uri.type === client.uri.Type.TRACK;
+}
+
+// A queue entry can carry a ?context= or #anchor= tail naming the same track,
+// which getAudioData ignores anyway.
+function cacheKey(uriRAW: any) {
+	return client.uri.from(uriRAW).getPath();
+}
+
+const analysisCache = createAnalysisCache((uri: string) => Spicetify.getAudioData(uri));
+
+function getAnalysis(uriRAW: any): Promise<MarkerAnalysis> {
+	return analysisCache.get(cacheKey(uriRAW));
 }
 
 let analysisIndex = 0;
@@ -24,7 +37,7 @@ export function showAnalysisForUri(uriRAW: any) {
 
 	hydrateLoading();
 
-	Spicetify.getAudioData(uriRAW)
+	getAnalysis(uriRAW)
 		.then((audioData) => {
 			if (thisAnalysisIndex !== analysisIndex) return;
 
@@ -46,10 +59,16 @@ export function showAnalysisForUri(uriRAW: any) {
 let lastPreloadURI: string | null = null;
 let lastPreloadTime = 0;
 export function preloadAnalysis(uriRAW: any) {
-	if (!shouldPreload(uriRAW, lastPreloadURI, lastPreloadTime, Date.now()) || !canThisBeAnalyzed(uriRAW)) return;
+	if (!canThisBeAnalyzed(uriRAW)) return;
+
+	// Already held or already in flight, so there is nothing left to send.
+	if (analysisCache.has(cacheKey(uriRAW))) return;
+
+	if (!shouldPreload(uriRAW, lastPreloadURI, lastPreloadTime, Date.now())) return;
 
 	lastPreloadURI = uriRAW;
 	lastPreloadTime = Date.now();
 
-	Spicetify.getAudioData(uriRAW);
+	// Uncaught on purpose: the cache's own handler covers the rejection.
+	getAnalysis(uriRAW);
 }

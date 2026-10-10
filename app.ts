@@ -8,9 +8,13 @@ import { nextTrackUri, shouldPreloadNextTrack } from "./logic";
 // attached only on the first run to avoid stacking up duplicates.
 let hasAttached = false;
 
+// The client hands its surfaces over in pieces, so startup polls until they
+// are all there.
+const CLIENT_READY_POLL_INTERVAL = 100; // ms
+
 async function main() {
 	while (!client.player.data || !client.uri || !client.locale || !client.cosmos || !client.react) {
-		await new Promise((resolve) => setTimeout(resolve, 100));
+		await new Promise((resolve) => setTimeout(resolve, CLIENT_READY_POLL_INTERVAL));
 	}
 
 	// Inject the playbar interface

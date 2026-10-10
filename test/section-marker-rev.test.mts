@@ -3,23 +3,25 @@
 // half is verified live through `npm run dev`.
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import {
 	isTooNarrowForMarkers,
 	markerHeight,
-	MARKER_REACH,
 	MINIMUM_MARKERS_WIDTH,
 	MINIMUM_MINI_PLAYER_MARKERS_WIDTH,
 	nextTrackUri,
-	PRELOAD_DEBOUNCE,
-	PRELOAD_LEAD_TIME,
 	sectionDatasetKey,
 	sectionVariableName,
 	sectionVariableValues,
+	SECTION_VARIABLES,
 	shouldPreload,
 	shouldPreloadNextTrack,
 	stateClassNames,
+	STATE_CLASS_NAMES,
+	TRACK_DURATION_VARIABLE,
+	type MarkerState,
 } from "../logic.ts";
 
 test("a blank load carries the no-data class and nothing else", () => {
@@ -56,11 +58,51 @@ test("under two sections the markers are hidden, two and up they are not", () =>
 });
 
 test("an unknown section count is not treated as too few", () => {
+	// null coerces to 0, so without the guard a track whose count is not known
+	// yet would read as "too few" and hide the markers.
 	assert.ok(
 		!stateClassNames({ state: "data", hadNoData: false, sectionCount: null }).includes(
 			"section-marker-less-than-two-sections",
 		),
 	);
+});
+
+test("every class the state can produce is one the body applies", () => {
+	// applyState walks STATE_CLASS_NAMES and toggles each, so a name it does
+	// not carry is dropped on the floor rather than applied.
+	const states: MarkerState[] = ["no-data", "loading", "data"];
+
+	for (const state of states) {
+		for (const hadNoData of [true, false]) {
+			for (const sectionCount of [null, 0, 1, 2]) {
+				for (const name of stateClassNames({ state, hadNoData, sectionCount })) {
+					assert.ok(STATE_CLASS_NAMES.includes(name), `${name} is produced but never applied`);
+				}
+			}
+		}
+	}
+});
+
+test("every generated name has a match in the stylesheet", () => {
+	// The coupling neither the compiler nor the linter can see: rename a name on
+	// one side and the markers quietly stop responding.
+	const scss = readFileSync(new URL("../index.scss", import.meta.url), "utf8");
+
+	for (const name of STATE_CLASS_NAMES) {
+		assert.ok(scss.includes(name), `${name} has no rule in index.scss`);
+	}
+
+	for (const variable of SECTION_VARIABLES) {
+		// "index" is written for anyone styling off the data attributes; the
+		// stylesheet itself has no use for it.
+		if (variable === "index") continue;
+
+		const name = sectionVariableName(variable);
+		assert.ok(scss.includes(name), `${name} is never read by index.scss`);
+	}
+
+	const trackDuration = sectionVariableName(TRACK_DURATION_VARIABLE);
+	assert.ok(scss.includes(trackDuration), `${trackDuration} is never read by index.scss`);
 });
 
 test("section values stay unitless seconds plus the index", () => {
@@ -80,10 +122,14 @@ test("each variable has a matching custom property and dataset key", () => {
 	assert.equal(sectionVariableName("start"), "--section-marker-data-start");
 	assert.equal(sectionVariableName("duration"), "--section-marker-data-duration");
 	assert.equal(sectionVariableName("index"), "--section-marker-data-index");
+	assert.equal(sectionVariableName("track-duration"), "--section-marker-data-track-duration");
 
 	assert.equal(sectionDatasetKey("start"), "sectionMarkerDataStart");
 	assert.equal(sectionDatasetKey("duration"), "sectionMarkerDataDuration");
 	assert.equal(sectionDatasetKey("index"), "sectionMarkerDataIndex");
+	// A hyphen cannot survive an attribute name, so a compound one is camel-cased
+	// rather than left broken.
+	assert.equal(sectionDatasetKey("track-duration"), "sectionMarkerDataTrackDuration");
 });
 
 test("the width gate hides markers strictly below its minimum", () => {
@@ -92,15 +138,11 @@ test("the width gate hides markers strictly below its minimum", () => {
 	assert.equal(isTooNarrowForMarkers(MINIMUM_MARKERS_WIDTH + 1, MINIMUM_MARKERS_WIDTH), false);
 });
 
-test("a marker reaches past the line on both sides", () => {
-	assert.equal(MARKER_REACH, 2);
+test("the marker is measured off the line, not the playbar", () => {
+	// The line is what the theme actually draws; a taller playbar growing
+	// around it must not change the height.
 	assert.equal(markerHeight({ line: 4, slider: 12, bar: 24 }), 6);
-});
-
-test("a taller playbar does not change the marker", () => {
-	// The line is what the marker is measured against; the playbar growing
-	// around it must not swallow the marker.
-	assert.equal(markerHeight({ line: 4, slider: 12, bar: 60 }), markerHeight({ line: 4, slider: 12, bar: 12 }));
+	assert.equal(markerHeight({ line: 4, slider: 12, bar: 60 }), 6);
 });
 
 test("marker height falls back when the line element is missing", () => {
@@ -109,14 +151,14 @@ test("marker height falls back when the line element is missing", () => {
 	assert.equal(markerHeight({ line: 0, slider: 0, bar: 0 }), 2);
 });
 
-test("the marker reach is overridable", () => {
-	assert.equal(markerHeight({ line: 4 }, 6), 10);
-});
-
 test("the mini player is held to its own, lower minimum", () => {
-	assert.equal(MINIMUM_MINI_PLAYER_MARKERS_WIDTH, 200);
-	assert.equal(isTooNarrowForMarkers(250, MINIMUM_MARKERS_WIDTH), true);
-	assert.equal(isTooNarrowForMarkers(250, MINIMUM_MINI_PLAYER_MARKERS_WIDTH), false);
+	// Whatever the two numbers are, the mini player's has to sit below the
+	// playbar's, or there is no width where the two gates disagree.
+	assert.ok(MINIMUM_MINI_PLAYER_MARKERS_WIDTH < MINIMUM_MARKERS_WIDTH);
+
+	const between = (MINIMUM_MARKERS_WIDTH + MINIMUM_MINI_PLAYER_MARKERS_WIDTH) / 2;
+	assert.equal(isTooNarrowForMarkers(between, MINIMUM_MARKERS_WIDTH), true);
+	assert.equal(isTooNarrowForMarkers(between, MINIMUM_MINI_PLAYER_MARKERS_WIDTH), false);
 });
 
 test("the queued track's uri is read off the context track", () => {
@@ -138,14 +180,7 @@ test("preloading waits until the track is nearly over", () => {
 	assert.equal(shouldPreloadNextTrack(200_000, 200_000), true);
 });
 
-test("the preload lead time is honoured, and overridable", () => {
-	assert.equal(PRELOAD_LEAD_TIME, 10_000);
-	assert.equal(shouldPreloadNextTrack(200_000, 185_000, 10_000), false);
-	assert.equal(shouldPreloadNextTrack(200_000, 185_000, 20_000), true);
-});
-
 test("a preload is due for a fresh uri once the debounce has passed", () => {
-	assert.equal(PRELOAD_DEBOUNCE, 15_000);
 	assert.equal(shouldPreload("spotify:track:2", null, 0, 60_000), true);
 	assert.equal(shouldPreload("spotify:track:2", "spotify:track:1", 0, 60_000), true);
 });

@@ -38,11 +38,8 @@ bunx spicetify-kit pack dist/section-marker-rev@2.0.0      # zip the build, prin
 bunx spicetify-kit install dist/section-marker-rev@2.0.0   # sideload into a running client
 ```
 
-<<<<<<< HEAD
-=======
 `spicetify-kit install` also accepts a `.zip`, so it can be pointed at a build attached to a release.
 
->>>>>>> parent of 70ecd59 (docs: use the scoped package name for bunx)
 ## Theming
 
 If you are a theme developer, or would like to modify the aspect of this extension, you can modify the CSS rules applied by this extension. Head to [index.scss](https://github.com/Golevka2001/section-marker-rev/blob/main/index.scss) to see the applied SCSS.

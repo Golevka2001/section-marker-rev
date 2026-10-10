@@ -22,7 +22,7 @@
 			{
 				"file": "analysis-loader.ts",
 				"rules": ["ambient-client"],
-				"reason": "Fetches analysis through Spicetify.getAudioData, the client's cached audio-analysis entry point; stdlib does not surface it."
+				"reason": "Fetches analysis through Spicetify.getAudioData, the client's audio-analysis entry point; stdlib does not surface it, and it does not cache, so the module keeps its own."
 			},
 			{
 				"file": "app.ts",

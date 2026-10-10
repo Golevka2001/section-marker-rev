@@ -1,31 +1,22 @@
-export function waitForElm(
-	selector: string,
-	within: ParentNode = document.body,
-	timeoutAfter = 5000,
-	shouldReject = false,
-): Promise<HTMLElement> {
-	return new Promise((resolve, reject) => {
-		let timeoutId: ReturnType<typeof setTimeout>;
-		if (timeoutAfter > 0) {
-			timeoutId = setTimeout(() => {
-				if (shouldReject) {
-					return reject("Did not find element after timeout.");
-				} else {
-					console.warn(
-						"waitForElm has waited for",
-						timeoutAfter,
-						" for selector",
-						selector,
-						"within",
-						within,
-						"but it has not yet been found.",
-					);
-				}
-			}, timeoutAfter);
-		}
+const WAIT_TIMEOUT = 5000; // ms
+
+export function waitForElm(selector: string): Promise<HTMLElement> {
+	const within = document.body;
+
+	return new Promise((resolve) => {
+		const timeoutId = setTimeout(() => {
+			console.warn(
+				"waitForElm has waited for",
+				WAIT_TIMEOUT,
+				"for selector",
+				selector,
+				"but it has not yet been found.",
+			);
+		}, WAIT_TIMEOUT);
 
 		const el = within.querySelector(selector);
 		if (el) {
+			clearTimeout(timeoutId);
 			return resolve(el as HTMLElement);
 		}
 
@@ -47,10 +38,9 @@ export function waitForElm(
 
 export function watchForElement(
 	selector: string,
-	within: ParentNode = document.body,
+	within: ParentNode,
 	callback: (el: Node) => void,
 	destructionCallback?: (el: Node) => void,
-	watch_subtree = true,
 ) {
 	const destructionObservers: MutationObserver[] = [];
 
@@ -98,7 +88,7 @@ export function watchForElement(
 	});
 	observer.observe(within as Node, {
 		childList: true,
-		subtree: watch_subtree,
+		subtree: true,
 	});
 
 	return () => {

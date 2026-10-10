@@ -7,10 +7,12 @@ import {
 	sectionDatasetKey,
 	sectionVariableName,
 	sectionVariableValues,
+	TRACK_DURATION_VARIABLE,
 	stateClassNames,
 	STATE_CLASS_NAMES,
 	SECTION_VARIABLES,
 	type MarkerState,
+	type MarkerAnalysis,
 } from "./logic";
 
 // Identifies this extension's own rules among every sheet on the page.
@@ -26,7 +28,7 @@ type Mount = {
 
 let mounts: Mount[] = [];
 let watchedDocuments: Document[] = [];
-let lastAnalysis: AudioAnalysis.Analysis | null = null;
+let lastAnalysis: MarkerAnalysis | null = null;
 
 // State lives here rather than per document, so a document that joins late
 // still gets it applied.
@@ -79,6 +81,8 @@ let miniPlayerPoll: ReturnType<typeof setInterval> | null = null;
 // The document from the enter event is not the one the mini player ends up
 // in: the client replaces it in chunks while rendering. So the live window is
 // re-resolved on a timer instead of being observed.
+const MINI_PLAYER_POLL_INTERVAL = 200; // ms
+
 function pollMiniPlayer() {
 	if (miniPlayerPoll) return;
 
@@ -105,7 +109,7 @@ function pollMiniPlayer() {
 
 			mountProgressBar(bar, MINIMUM_MINI_PLAYER_MARKERS_WIDTH);
 		}
-	}, 200);
+	}, MINI_PLAYER_POLL_INTERVAL);
 }
 
 function watchDocument(doc: Document) {
@@ -168,7 +172,10 @@ function getOwnStyleRules() {
 // The loader periodically detaches the stylesheet and puts it back a frame or
 // two later, which reads as the progress bar flickering. A plain <style> in the
 // head is not something it manages, so a pinned copy covers those gaps.
+// STYLE_PIN_ATTEMPTS rounds of STYLE_PIN_INTERVAL is how long a missing
+// stylesheet is waited out before the copy is given up on.
 const STYLE_PIN_ATTEMPTS = 20;
+const STYLE_PIN_INTERVAL = 250; // ms
 let stylePinAttempts = 0;
 
 function pinStyles() {
@@ -177,7 +184,7 @@ function pinStyles() {
 	const rules = getOwnStyleRules();
 	if (rules.length === 0) {
 		// The stylesheet may not have been adopted yet
-		if (stylePinAttempts++ < STYLE_PIN_ATTEMPTS) setTimeout(pinStyles, 250);
+		if (stylePinAttempts++ < STYLE_PIN_ATTEMPTS) setTimeout(pinStyles, STYLE_PIN_INTERVAL);
 		return;
 	}
 
@@ -324,7 +331,7 @@ export function hydrateLoading() {
 	applyStateToAllBodies();
 }
 
-export function hydrateAnalysis(audioData: AudioAnalysis.Analysis) {
+export function hydrateAnalysis(audioData: MarkerAnalysis) {
 	state = "data";
 	sectionCount = audioData.sections.length;
 	lastAnalysis = audioData;
@@ -336,7 +343,7 @@ export function hydrateAnalysis(audioData: AudioAnalysis.Analysis) {
 	}
 }
 
-function applyAnalysis(mount: Mount, audioData: AudioAnalysis.Analysis) {
+function applyAnalysis(mount: Mount, audioData: MarkerAnalysis) {
 	const markerElms = Array.from(mount.markerContainer.querySelectorAll<HTMLDivElement>(".section-marker-marker"));
 	const sectionElms = Array.from(mount.sectionContainer.querySelectorAll<HTMLDivElement>(".section-marker-section"));
 
@@ -363,8 +370,8 @@ function applyAnalysis(mount: Mount, audioData: AudioAnalysis.Analysis) {
 		const body = mount.doc.body;
 
 		if (body) {
-			body.style.setProperty("--section-marker-data-track-duration", trackDuration);
-			body.dataset.sectionMarkerDataTrackDuration = trackDuration;
+			body.style.setProperty(sectionVariableName(TRACK_DURATION_VARIABLE), trackDuration);
+			body.dataset[sectionDatasetKey(TRACK_DURATION_VARIABLE)] = trackDuration;
 		}
 
 		for (let i = 0; i < audioData.sections.length; i++) {
