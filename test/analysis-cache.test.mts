@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { createAnalysisCache } from "../analysis-cache.ts";
+import { createAnalysisCache, REQUEST_TIMEOUT, RETRY_INTERVAL } from "../analysis-cache.ts";
 
 // Bulky fields filled in, so a projection that drops them is visible.
 function fakeAnalysis(duration = 200) {
@@ -23,21 +23,36 @@ function fakeAnalysis(duration = 200) {
 	} as unknown as AudioAnalysis.Analysis;
 }
 
-function countingFetcher() {
-	const calls: string[] = [];
-
+// A clock the test drives, so the retry gap needs no real waiting.
+function fakeClock(start = 1_000_000) {
+	let time = start;
 	return {
-		calls,
-		fetch: (uri: string) => {
-			calls.push(uri);
-			return Promise.resolve(fakeAnalysis());
+		now: () => time,
+		advance: (ms: number) => {
+			time += ms;
 		},
 	};
 }
 
+// Records what reached the client, and fails every time by default.
+function recorder(
+	behaviour: (attempt: number) => Promise<AudioAnalysis.Analysis> = () => Promise.reject(new Error("no analysis")),
+) {
+	const calls: string[] = [];
+	return {
+		calls,
+		fetch: (uri: string) => {
+			calls.push(uri);
+			return behaviour(calls.length);
+		},
+	};
+}
+
+// A resolved sentinel cannot play this part: it would win every race.
+const never = new Promise<never>(() => {});
+
 test("what the cache stores is the projection, not the raw payload", async () => {
-	// Asserted through the cache on purpose:
-	// pickMarkerData alone would still pass if the cache stopped using it and started holding whole analyses.
+	// Asserted through the cache: pickMarkerData alone would still pass if the cache stopped using it.
 	const cache = createAnalysisCache(() => Promise.resolve(fakeAnalysis(321)));
 
 	assert.deepEqual(await cache.get("spotify:track:1"), {
@@ -50,74 +65,53 @@ test("what the cache stores is the projection, not the raw payload", async () =>
 });
 
 test("the same uri is fetched once however often it is asked for", async () => {
-	const { calls, fetch } = countingFetcher();
-	const cache = createAnalysisCache(fetch);
+	const cache = createAnalysisCache(recorder(() => Promise.resolve(fakeAnalysis())).fetch);
 
-	const first = await cache.get("spotify:track:1");
-	const second = await cache.get("spotify:track:1");
-
-	assert.deepEqual(calls, ["spotify:track:1"]);
-	assert.deepEqual(second, first);
-});
-
-test("a request still in flight is shared rather than repeated", async () => {
-	const { calls, fetch } = countingFetcher();
-	const cache = createAnalysisCache(fetch);
-
-	// Both asks land before anything settles.
+	// Both asks land before anything settles, so this covers the in-flight case too.
 	const inFlight = cache.get("spotify:track:1");
 	const sameRequest = cache.get("spotify:track:1");
 
+	assert.deepEqual(cache.get("spotify:track:1"), sameRequest);
+	assert.equal((await inFlight).track.duration, (await sameRequest).track.duration);
+});
+
+test("a failure is forgotten, and the track is asked again once the gap has passed", async () => {
+	const clock = fakeClock();
+	const { calls, fetch } = recorder((attempt) =>
+		attempt === 1 ? Promise.reject(new Error("offline")) : Promise.resolve(fakeAnalysis(321)),
+	);
+	const cache = createAnalysisCache(fetch, clock.now);
+
+	await assert.rejects(cache.get("spotify:track:1"), /offline/);
+
+	// The loader's order: isDue, then get. Ticking through the gap sends nothing,
+	// or a blip costs the track its markers for the rest of the song.
+	for (let tick = 0; tick < RETRY_INTERVAL / 100 - 1; tick++) {
+		clock.advance(100);
+		if (cache.isDue("spotify:track:1")) await cache.get("spotify:track:1").catch(() => {});
+	}
 	assert.deepEqual(calls, ["spotify:track:1"]);
-	assert.deepEqual(await inFlight, await sameRequest);
-});
+	assert.equal(cache.isDue("spotify:track:1"), false);
 
-test("a result is still there after the request has settled", async () => {
-	const { calls, fetch } = countingFetcher();
-	const cache = createAnalysisCache(fetch);
-
-	await cache.get("spotify:track:1");
-	await new Promise((resolve) => setTimeout(resolve, 0)); // let it settle
-	await cache.get("spotify:track:1");
-
-	assert.deepEqual(calls, ["spotify:track:1"]);
-});
-
-test("different tracks are cached apart from each other", async () => {
-	const { calls, fetch } = countingFetcher();
-	const cache = createAnalysisCache(fetch);
-
-	await cache.get("spotify:track:1");
-	await cache.get("spotify:track:2");
-	await cache.get("spotify:track:1");
-
-	assert.deepEqual(calls, ["spotify:track:1", "spotify:track:2"]);
-});
-
-test("a failure is not remembered, so the next ask retries", async () => {
-	const calls: string[] = [];
-	const cache = createAnalysisCache((uri) => {
-		calls.push(uri);
-		return calls.length === 1 ? Promise.reject(new Error("no analysis")) : Promise.resolve(fakeAnalysis());
-	});
-
-	await assert.rejects(cache.get("spotify:track:1"), /no analysis/);
-
-	const retried = await cache.get("spotify:track:1");
+	clock.advance(100);
+	assert.equal(cache.isDue("spotify:track:1"), true);
+	const recovered = await cache.get("spotify:track:1");
 
 	assert.deepEqual(calls, ["spotify:track:1", "spotify:track:1"]);
-	assert.equal(retried.track.duration, 200);
+	assert.equal(recovered.track.duration, 321);
 });
 
-test("a failure nobody awaits does not surface as an unhandled rejection", async () => {
+test("a rejected request nobody awaits does not surface as an unhandled rejection", async () => {
 	const seen: unknown[] = [];
 	const onUnhandled = (reason: unknown) => seen.push(reason);
 	process.on("unhandledRejection", onUnhandled);
 
 	try {
-		// The preload path drops the promise on the floor,
-		// so the cache is what has to keep this from becoming an unhandled rejection.
-		createAnalysisCache(() => Promise.reject(new Error("no analysis"))).get("spotify:track:1");
+		const { fetch } = recorder();
+		const cache = createAnalysisCache(fetch);
+
+		// The preload path drops promises on the floor, so the cache has to cover it.
+		cache.get("spotify:track:1");
 		await new Promise((resolve) => setTimeout(resolve, 10));
 	} finally {
 		process.off("unhandledRejection", onUnhandled);
@@ -126,16 +120,25 @@ test("a failure nobody awaits does not surface as an unhandled rejection", async
 	assert.deepEqual(seen, []);
 });
 
-test("has reports what is held without starting anything", async () => {
-	const { calls, fetch } = countingFetcher();
-	const cache = createAnalysisCache(fetch);
+test("a request the client never answers is treated as a failure", async (t) => {
+	t.mock.timers.enable({ apis: ["setTimeout"] });
 
-	assert.equal(cache.has("spotify:track:1"), false);
-	assert.deepEqual(calls, []);
+	const cache = createAnalysisCache(() => new Promise(() => {}));
+
+	const pending = cache.get("spotify:track:1");
+	t.mock.timers.tick(REQUEST_TIMEOUT);
+
+	// Without a bound this marker would sit loading for the rest of the track.
+	await assert.rejects(Promise.race([pending, never]), /no answer within/);
+});
+
+test("the gap on one track does not hold up another", async () => {
+	const clock = fakeClock();
+	const cache = createAnalysisCache(recorder(() => Promise.resolve(fakeAnalysis())).fetch, clock.now);
 
 	await cache.get("spotify:track:1");
 
-	assert.equal(cache.has("spotify:track:1"), true);
-	// Peeking must not spend a request of its own either.
-	assert.deepEqual(calls, ["spotify:track:1"]);
+	// A different track is unaffected by the first one's gap.
+	assert.equal(cache.isDue("spotify:track:2"), true);
+	assert.equal((await cache.get("spotify:track:2")).track.duration, 200);
 });

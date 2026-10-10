@@ -18,8 +18,14 @@ let hasAttached = false;
 // so startup polls until they are all there.
 const CLIENT_READY_POLL_INTERVAL = 100; // ms
 
+// Spicetify.Player.data only appears once a track is loaded,
+// which on an idle session can take minutes, so this wait stays off the loader's promise.
+function isClientReady() {
+	return Boolean(client.player?.data && client.uri && client.locale && client.cosmos && client.react);
+}
+
 async function main() {
-	while (!client.player.data || !client.uri || !client.locale || !client.cosmos || !client.react) {
+	while (!isClientReady()) {
 		await new Promise((resolve) => setTimeout(resolve, CLIENT_READY_POLL_INTERVAL));
 	}
 

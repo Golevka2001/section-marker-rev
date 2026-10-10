@@ -28,6 +28,11 @@
 				"file": "app.ts",
 				"rules": ["ambient-client"],
 				"reason": "Peeks at the upcoming track through Spicetify.Queue to preload its analysis; stdlib does not surface the queue."
+			},
+			{
+				"file": "test/stubs/harness.ts",
+				"rules": ["ambient-client"],
+				"reason": "The test harness installs a fake Spicetify global so analysis-loader.ts can be driven in Node; standing that global up is the whole point of the file."
 			}
 		]
 	},

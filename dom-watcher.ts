@@ -2,13 +2,16 @@
  * A set of utilities for watching the DOM for the presence of specific elements.
  */
 
-// How long to wait for an element to appear before timing out.
+// How long to wait for an element to appear before giving up on it.
 const WAIT_TIMEOUT = 5000; // ms
 
-export function waitForElm(selector: string): Promise<HTMLElement> {
+// Resolves null when the element never turns up, so a caller can carry on rather than wait forever.
+export function waitForElm(selector: string): Promise<HTMLElement | null> {
 	const within = document.body;
 
 	return new Promise((resolve) => {
+		let observer: MutationObserver | undefined;
+
 		const timeoutId = setTimeout(() => {
 			console.warn(
 				"waitForElm has waited for",
@@ -17,21 +20,25 @@ export function waitForElm(selector: string): Promise<HTMLElement> {
 				selector,
 				" but it has not yet been found.",
 			);
+			settle(null);
 		}, WAIT_TIMEOUT);
+
+		// The single exit: whichever happens first, timer and observer are cleaned up.
+		function settle(el: HTMLElement | null) {
+			clearTimeout(timeoutId);
+			observer?.disconnect();
+			resolve(el);
+		}
 
 		const el = within.querySelector(selector);
 		if (el) {
-			clearTimeout(timeoutId);
-			return resolve(el as HTMLElement);
+			settle(el as HTMLElement);
+			return;
 		}
 
-		const observer = new MutationObserver(() => {
+		observer = new MutationObserver(() => {
 			const el = within.querySelector(selector);
-			if (el) {
-				observer.disconnect();
-				clearTimeout(timeoutId);
-				return resolve(el as HTMLElement);
-			}
+			if (el) settle(el as HTMLElement);
 		});
 
 		observer.observe(within as Node, {

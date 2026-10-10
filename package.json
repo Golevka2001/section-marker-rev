@@ -11,7 +11,7 @@
     "build": "spicetify-kit build .",
     "dev": "spicetify-kit dev .",
     "check": "tsc && oxlint && spicetify-kit check .",
-    "test": "node --test \"test/*.test.mts\"",
+    "test": "node --import ./test/stubs/harness.ts --test \"test/*.test.mts\"",
     "lint": "oxlint",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check"

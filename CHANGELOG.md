@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- A module load no longer hangs the loader when the client is slow to hand over its surfaces.
+- A progress bar that never appears no longer leaves the interface waiting forever.
+- A failed analysis is retried every 10s instead of on every player tick, and the gap no longer holds back the markers.
+- An analysis request that never answers no longer holds the marker loading.
+
 ## [2.0.1] - 2026-10-10
 
 ### Added

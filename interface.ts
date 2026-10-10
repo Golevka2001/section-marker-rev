@@ -47,9 +47,16 @@ export async function injectInterface() {
 	applyState(document.body);
 	pinStyles();
 
+	// Without it there is nowhere to mount the markers.
+	const root = await waitForElm("#main > .Root");
+	if (!root) {
+		console.warn("[section-marker-rev] the client root never appeared, so the section markers are not mounted.");
+		return;
+	}
+
 	watchForElement(
 		".playback-bar .playback-progressbar",
-		await waitForElm("#main > .Root"),
+		root,
 		(el) => {
 			mountProgressBar(el as HTMLElement);
 		},
@@ -194,7 +201,7 @@ function pinStyles() {
 function copyStyles(doc: Document) {
 	const rules = getOwnStyleRules();
 	if (rules.length === 0) {
-		console.warn("SECTION-MARKER: Could not find the extension stylesheet to copy");
+		console.warn("[section-marker-rev] Could not find the extension stylesheet to copy");
 		return;
 	}
 

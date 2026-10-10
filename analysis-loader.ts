@@ -31,15 +31,37 @@ function getAnalysis(uriRAW: any): Promise<MarkerAnalysis> {
 
 let analysisIndex = 0;
 let shownURI: string | null = null;
+let blankedURI: string | null = null;
+
+// The gap is survived by ticking, so a track is only blanked once.
+function blank(uriRAW: any) {
+	if (blankedURI === uriRAW) return;
+
+	blankedURI = uriRAW;
+	hydrateEmpty();
+}
+
 export function showAnalysisForUri(uriRAW: any) {
 	if (uriRAW === shownURI) return;
-	shownURI = uriRAW;
 
-	const thisAnalysisIndex = ++analysisIndex;
 	if (!canThisBeAnalyzed(uriRAW)) {
-		hydrateEmpty();
+		shownURI = uriRAW;
+		blank(uriRAW);
 		return;
 	}
+
+	const uri = cacheKey(uriRAW);
+
+	// A preload counts as the ask, and it is the freshest attempt the gap can be given.
+	if (!analysisCache.has(uri) && !analysisCache.isDue(uri)) {
+		// The gap holds the request back, not the markers: what is on screen is the previous track's.
+		blank(uriRAW);
+		return;
+	}
+
+	shownURI = uriRAW;
+	blankedURI = null;
+	const thisAnalysisIndex = ++analysisIndex;
 
 	hydrateLoading();
 
@@ -50,7 +72,7 @@ export function showAnalysisForUri(uriRAW: any) {
 			hydrateAnalysis(audioData);
 		})
 		.catch((err) => {
-			console.warn("SECTION-MARKER: Failed to get audio data for", uriRAW, err);
+			console.warn("[section-marker-rev] Failed to get audio data for", uriRAW, err);
 			if (thisAnalysisIndex !== analysisIndex) return;
 
 			// Forget the URI so a later tick can try again.
@@ -58,7 +80,7 @@ export function showAnalysisForUri(uriRAW: any) {
 			// and keeping the URI would leave this track blank until another one was played.
 			if (shownURI === uriRAW) shownURI = null;
 
-			hydrateEmpty();
+			blank(uriRAW);
 		});
 }
 
@@ -69,6 +91,9 @@ export function preloadAnalysis(uriRAW: any) {
 
 	// Already held or already in flight, so there is nothing left to send.
 	if (analysisCache.has(cacheKey(uriRAW))) return;
+
+	// Asked too recently to be worth another request.
+	if (!analysisCache.isDue(cacheKey(uriRAW))) return;
 
 	if (!shouldPreload(uriRAW, lastPreloadURI, lastPreloadTime, Date.now())) return;
 
