@@ -3,9 +3,9 @@
   "version": "2.0.1",
   "private": true,
   "type": "module",
-  "packageManager": "bun@1.4.0",
+  "packageManager": "bun@1.4.2",
   "engines": {
-    "node": ">=22.6"
+    "node": ">=22.15"
   },
   "scripts": {
     "build": "spicetify-kit build .",
@@ -19,11 +19,11 @@
   "license": "CC-BY-NC-4.0",
   "devDependencies": {
     "@spicetify/kit": "^0.4.4",
-    "@types/node": "^24",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
+    "@types/node": "^26.6.5",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
     "oxfmt": "^0.72.0",
     "oxlint": "^1.87.0",
-    "typescript": "^7"
+    "typescript": "^7.0.2"
   }
 }

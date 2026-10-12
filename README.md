@@ -55,8 +55,11 @@ A slot keeps its attributes while it is marked `section-marker-not-exists`, so a
 
 ```sh
 bun install       # install dependencies
-bun run check     # tsc + module standard audit
+bun run check     # tsc + oxlint + module standard audit
 bun run test      # run unit tests
+bun run lint      # oxlint
+bun run fmt       # oxfmt, in place
+bun run fmt:check # oxfmt, report only
 bun run build     # bundle into dist/section-marker-rev@<version>
 bun run dev       # watch, rebuild and hot-push into a running client
 ```
