@@ -14,11 +14,10 @@ export function waitForElm(selector: string): Promise<HTMLElement | null> {
 
 		const timeoutId = setTimeout(() => {
 			console.warn(
-				"waitForElm has waited for",
+				"[section-marker-rev] selector did not appear within",
 				WAIT_TIMEOUT,
-				" for selector",
+				"ms:",
 				selector,
-				" but it has not yet been found.",
 			);
 			settle(null);
 		}, WAIT_TIMEOUT);

@@ -77,7 +77,7 @@ export function showAnalysisForUri(uriRAW: any) {
 			hydrateAnalysis(audioData);
 		})
 		.catch((err) => {
-			console.warn("[section-marker-rev] Failed to get audio data for", uriRAW, err);
+			console.warn("[section-marker-rev] could not get audio data for", uriRAW, err);
 			if (thisAnalysisIndex !== analysisIndex) return;
 
 			// Forget the URI so a later tick can try again.

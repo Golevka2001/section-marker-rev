@@ -100,7 +100,7 @@ export async function injectInterface(signal: AbortSignal): Promise<() => void> 
 	}
 
 	if (!root) {
-		console.warn("[section-marker-rev] the client root never appeared, so the section markers are not mounted.");
+		console.warn("[section-marker-rev] the client root never appeared, so the section markers are not mounted");
 		return dispose;
 	}
 
@@ -287,7 +287,7 @@ function stopStylePin() {
 function copyStyles(doc: Document) {
 	const rules = getOwnStyleRules();
 	if (rules.length === 0) {
-		console.warn("[section-marker-rev] Could not find the extension stylesheet to copy");
+		console.warn("[section-marker-rev] could not find the extension stylesheet to copy");
 		return;
 	}
 
