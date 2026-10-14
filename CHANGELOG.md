@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [2.0.2] - 2026-10-14
 
 ### Fixed
 
@@ -52,5 +52,6 @@ First release of the Spicetify v3 port, forked from [Aimarekin's section-marker]
 - The alternating sections carry a wash of their own, so they read where the backdrop filter does not apply.
 - Ported to the v3 module standard.
 
+[2.0.2]: https://github.com/Golevka2001/section-marker-rev/releases/tag/section-marker-rev@2.0.2
 [2.0.1]: https://github.com/Golevka2001/section-marker-rev/releases/tag/section-marker-rev@2.0.1
 [2.0.0]: https://github.com/Golevka2001/section-marker-rev/releases/tag/section-marker-rev@2.0.0
