@@ -8,6 +8,7 @@
 - A progress bar that never appears no longer leaves the interface waiting forever.
 - A failed analysis is retried every 10s instead of on every player tick, and the gap no longer holds back the markers.
 - An analysis request that never answers no longer holds the marker loading.
+- Disabling the module now takes effect at once.
 
 ## [2.0.1] - 2026-10-10
 

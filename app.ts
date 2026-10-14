@@ -7,12 +7,8 @@
 import { client } from "/modules/stdlib/mod.ts";
 
 import { injectInterface } from "./interface";
-import { showAnalysisForUri, preloadAnalysis } from "./analysis-loader";
+import { showAnalysisForUri, preloadAnalysis, forgetShownTrack } from "./analysis-loader";
 import { nextTrackUri, shouldPreloadNextTrack } from "./logic";
-
-// The loader can call the entry more than once per page,
-// so the listeners are attached only on the first run to avoid stacking up duplicates.
-let hasAttached = false;
 
 // The client hands its surfaces over in pieces,
 // so startup polls until they are all there.
@@ -24,16 +20,34 @@ function isClientReady() {
 	return Boolean(client.player?.data && client.uri && client.locale && client.cosmos && client.react);
 }
 
-async function main() {
-	while (!isClientReady()) {
-		await new Promise((resolve) => setTimeout(resolve, CLIENT_READY_POLL_INTERVAL));
+function sleep(ms: number) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+let isMounted = false;
+
+export default async function main(signal: AbortSignal): Promise<() => void> {
+	if (isMounted) return () => {};
+	isMounted = true;
+
+	while (!signal.aborted && !isClientReady()) {
+		await sleep(CLIENT_READY_POLL_INTERVAL);
+	}
+
+	if (signal.aborted) {
+		isMounted = false;
+		return () => {};
 	}
 
 	// Inject the playbar interface
-	await injectInterface();
+	const disposeInterface = await injectInterface(signal);
 
-	if (hasAttached) return;
-	hasAttached = true;
+	// Unloaded while the interface was mounting, which it already undid.
+	if (signal.aborted) {
+		disposeInterface();
+		isMounted = false;
+		return () => {};
+	}
 
 	function getCurrentURI() {
 		const data = client.player.origin.getState();
@@ -59,6 +73,15 @@ async function main() {
 
 	// Cover the track that is already playing right now
 	refresh();
-}
 
-export default main;
+	return () => {
+		isMounted = false;
+
+		client.player.removeEventListener("onprogress", refresh);
+		client.player.removeEventListener("songchange", refresh);
+		client.player.removeEventListener("nowplaying", refresh);
+
+		disposeInterface();
+		forgetShownTrack();
+	};
+}

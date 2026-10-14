@@ -41,6 +41,11 @@ function blank(uriRAW: any) {
 	hydrateEmpty();
 }
 
+export function forgetShownTrack() {
+	shownURI = null;
+	blankedURI = null;
+}
+
 export function showAnalysisForUri(uriRAW: any) {
 	if (uriRAW === shownURI) return;
 

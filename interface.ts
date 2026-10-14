@@ -20,6 +20,11 @@ import {
 // Identifies this extension's own rules among every sheet on the page.
 const STYLE_SIGNATURE = "section-marker";
 
+// The style tags this file creates, so teardown can take back exactly its own.
+const PINNED_STYLE_SELECTOR = "style[data-section-marker-pinned]";
+const COPIED_STYLE_SELECTOR = "style[data-section-marker-styles]";
+const PLAYBAR_HEIGHT_VARIABLE = "--section-marker-playbar-height";
+
 type Mount = {
 	bar: HTMLElement;
 	doc: Document;
@@ -39,22 +44,67 @@ let hadNoData = false;
 let sectionCount: number | null = null;
 
 let hasInjected = false;
-export async function injectInterface() {
+// Set by the disposer, so an analysis still in flight paints nothing back.
+let isDisposed = false;
+
+let unwatchProgressBar: (() => void) | null = null;
+let stylePinTimer: ReturnType<typeof setTimeout> | null = null;
+let miniPlayerPoll: ReturnType<typeof setInterval> | null = null;
+let watchesMiniPlayer = false;
+
+const pagehideListeners = new Map<Document, () => void>();
+
+export async function injectInterface(signal: AbortSignal): Promise<() => void> {
 	// The loader can evaluate this entry more than once per page.
-	if (hasInjected) return;
+	if (hasInjected) return () => {};
 	hasInjected = true;
+	isDisposed = false;
 
 	applyState(document.body);
 	pinStyles();
 
+	const dispose = () => {
+		unwatchProgressBar?.();
+		unwatchProgressBar = null;
+
+		if (watchesMiniPlayer) {
+			(window as any).documentPictureInPicture?.removeEventListener?.("enter", pollMiniPlayer);
+			watchesMiniPlayer = false;
+		}
+		stopMiniPlayerPoll();
+
+		const documents = new Set<Document>([document, ...watchedDocuments]);
+		watchedDocuments = [];
+		for (const doc of documents) clearDocument(doc);
+
+		stopStylePin();
+		document.querySelector(PINNED_STYLE_SELECTOR)?.remove();
+
+		state = "no-data";
+		hadNoData = false;
+		sectionCount = null;
+		lastAnalysis = null;
+
+		isDisposed = true;
+		// Cleared last, so a later entry call mounts again.
+		hasInjected = false;
+	};
+
 	// Without it there is nowhere to mount the markers.
 	const root = await waitForElm("#main > .Root");
-	if (!root) {
-		console.warn("[section-marker-rev] the client root never appeared, so the section markers are not mounted.");
-		return;
+
+	// Unloaded while waiting, so there is nothing left to mount.
+	if (signal.aborted) {
+		dispose();
+		return () => {};
 	}
 
-	watchForElement(
+	if (!root) {
+		console.warn("[section-marker-rev] the client root never appeared, so the section markers are not mounted.");
+		return dispose;
+	}
+
+	unwatchProgressBar = watchForElement(
 		".playback-bar .playback-progressbar",
 		root,
 		(el) => {
@@ -64,6 +114,8 @@ export async function injectInterface() {
 	);
 
 	watchMiniPlayer();
+
+	return dispose;
 }
 
 function applyState(body: HTMLElement) {
@@ -74,16 +126,25 @@ function applyState(body: HTMLElement) {
 	}
 }
 
+// The same surface, without this module: the classes and the variables the markers are positioned by.
+function clearBodyState(body: HTMLElement) {
+	for (const className of STATE_CLASS_NAMES) {
+		body.classList.remove(className);
+	}
+
+	body.style.removeProperty(sectionVariableName(TRACK_DURATION_VARIABLE));
+	delete body.dataset[sectionDatasetKey(TRACK_DURATION_VARIABLE)];
+}
+
 function watchMiniPlayer() {
 	const pip = (window as any).documentPictureInPicture;
 	if (!pip || typeof pip.addEventListener !== "function") return;
 
+	watchesMiniPlayer = true;
 	pip.addEventListener("enter", pollMiniPlayer);
 
 	if (pip.window) pollMiniPlayer(); // may already be open
 }
-
-let miniPlayerPoll: ReturnType<typeof setInterval> | null = null;
 
 // The document from the enter event is not the one the mini player ends up in:
 // the client replaces it in chunks, so the live window is re-resolved on a timer.
@@ -98,8 +159,7 @@ function pollMiniPlayer() {
 		const doc: Document | undefined = (window as any).documentPictureInPicture?.window?.document;
 
 		if (!doc) {
-			clearInterval(miniPlayerPoll!);
-			miniPlayerPoll = null;
+			stopMiniPlayerPoll();
 			if (watched) forgetDocument(watched);
 			return;
 		}
@@ -118,6 +178,11 @@ function pollMiniPlayer() {
 	}, MINI_PLAYER_POLL_INTERVAL);
 }
 
+function stopMiniPlayerPoll() {
+	if (miniPlayerPoll) clearInterval(miniPlayerPoll);
+	miniPlayerPoll = null;
+}
+
 function watchDocument(doc: Document) {
 	if (watchedDocuments.includes(doc)) return;
 	watchedDocuments.push(doc);
@@ -125,18 +190,29 @@ function watchDocument(doc: Document) {
 	if (doc.body) applyState(doc.body);
 	copyStyles(doc);
 
-	doc.defaultView?.addEventListener("pagehide", () => forgetDocument(doc), { once: true });
+	const onPageHide = () => forgetDocument(doc);
+	pagehideListeners.set(doc, onPageHide);
+	doc.defaultView?.addEventListener("pagehide", onPageHide, { once: true });
 }
 
 function forgetDocument(doc: Document) {
 	watchedDocuments = watchedDocuments.filter((watched) => watched !== doc);
-	unmountDocument(doc);
+	clearDocument(doc);
 }
 
-function unmountDocument(doc: Document) {
+function clearDocument(doc: Document) {
 	for (const bar of mounts.filter((mount) => mount.doc === doc).map((mount) => mount.bar)) {
 		unmountProgressBar(bar);
 	}
+
+	const onPageHide = pagehideListeners.get(doc);
+	if (onPageHide) {
+		doc.defaultView?.removeEventListener("pagehide", onPageHide);
+		pagehideListeners.delete(doc);
+	}
+
+	doc.querySelector(COPIED_STYLE_SELECTOR)?.remove();
+	if (doc.body) clearBodyState(doc.body);
 }
 
 let ownStyleRules: string[] | null = null;
@@ -183,19 +259,29 @@ const STYLE_PIN_INTERVAL = 250; // ms
 let stylePinAttempts = 0;
 
 function pinStyles() {
-	if (document.querySelector("style[data-section-marker-pinned]")) return;
+	if (document.querySelector(PINNED_STYLE_SELECTOR)) return;
 
 	const rules = getOwnStyleRules();
 	if (rules.length === 0) {
 		// The stylesheet may not have been adopted yet
-		if (stylePinAttempts++ < STYLE_PIN_ATTEMPTS) setTimeout(pinStyles, STYLE_PIN_INTERVAL);
+		if (stylePinAttempts++ < STYLE_PIN_ATTEMPTS) {
+			stylePinTimer = setTimeout(pinStyles, STYLE_PIN_INTERVAL);
+		}
 		return;
 	}
+
+	stylePinTimer = null;
 
 	const style = document.createElement("style");
 	style.dataset.sectionMarkerPinned = "";
 	style.textContent = rules.join("\n");
 	document.head.appendChild(style);
+}
+
+function stopStylePin() {
+	if (stylePinTimer) clearTimeout(stylePinTimer);
+	stylePinTimer = null;
+	stylePinAttempts = 0;
 }
 
 function copyStyles(doc: Document) {
@@ -231,7 +317,7 @@ function getBarLine(sliderArea: HTMLElement) {
 }
 
 function mountProgressBar(bar: HTMLElement) {
-	if (mounts.some((mount) => mount.bar === bar)) return;
+	if (isDisposed || mounts.some((mount) => mount.bar === bar)) return;
 
 	const doc = bar.ownerDocument;
 	const view = doc.defaultView ?? window;
@@ -261,7 +347,7 @@ function mountProgressBar(bar: HTMLElement) {
 			slider: sliderArea.clientHeight,
 			bar: bar.clientHeight,
 		});
-		bar.style.setProperty("--section-marker-playbar-height", height + "px");
+		bar.style.setProperty(PLAYBAR_HEIGHT_VARIABLE, height + "px");
 	}
 	setDimensions();
 
@@ -282,6 +368,7 @@ function unmountProgressBar(bar: Node) {
 	mounts = mounts.filter((candidate) => candidate !== mount);
 	mount.resizeObserver.disconnect();
 	mount.bar.classList.remove("section-marker-injected-playbar");
+	mount.bar.style.removeProperty(PLAYBAR_HEIGHT_VARIABLE);
 	mount.sectionContainer.remove();
 	mount.markerContainer.remove();
 }
@@ -305,7 +392,10 @@ function applyStateToAllBodies() {
 	}
 }
 
+// Every hydrate* entry point checks this, so an analysis still in flight at unload paints nothing.
 export function hydrateEmpty() {
+	if (isDisposed) return;
+
 	state = "no-data";
 	hadNoData = false;
 	sectionCount = null;
@@ -315,6 +405,8 @@ export function hydrateEmpty() {
 }
 
 export function hydrateLoading() {
+	if (isDisposed) return;
+
 	// Remember whether this load starts blank, so the markers do not slide in from their previous positions.
 	hadNoData = state === "no-data";
 	state = "loading";
@@ -323,6 +415,8 @@ export function hydrateLoading() {
 }
 
 export function hydrateAnalysis(audioData: MarkerAnalysis) {
+	if (isDisposed) return;
+
 	state = "data";
 	sectionCount = audioData.sections.length;
 	lastAnalysis = audioData;
